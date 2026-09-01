@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Inventory Sales Analytics</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <main class="container">
+
+        <section class="scanner-card">
+
+            <h1>Inventory Sales Analytics</h1>
+            <p class="subtitle">Product Barcode Scanner</p>
+
+            <div class="scanner-section">
+
+                <label for="barcodeInput">
+                    Product Barcode
+                </label>
+
+                <div class="barcode-input">
+
+                    <input
+                        type="text"
+                        id="barcodeInput"
+                        placeholder="Scan or enter barcode"
+                        autocomplete="off"
+                    >
+
+                    <button id="searchButton">
+                        Search
+                    </button>
+
+                </div>
+
+                <p id="scannerMessage"></p>
+
+            </div>
+
+        </section>
+
+
+        <!-- PRODUCT RESULT -->
+
+        <section
+            id="productCard"
+            class="product-card"
+            hidden
+        >
+
+            <div class="product-image">
+
+                <img
+                    id="productImage"
+                    src=""
+                    alt="Product image"
+                >
+
+            </div>
+
+
+            <div class="product-info">
+
+                <h2 id="productName">Product Name</h2>
+
+                <div class="detail">
+                    <strong>Barcode:</strong>
+                    <span id="productBarcode"></span>
+                </div>
+
+                <div class="detail">
+                    <strong>Brand:</strong>
+                    <span id="productBrand"></span>
+                </div>
+
+                <div class="detail">
+                    <strong>Category:</strong>
+                    <span id="productCategory"></span>
+                </div>
+
+                <div class="detail">
+                    <strong>Unit:</strong>
+                    <span id="productUnit"></span>
+                </div>
+
+                <div class="detail">
+                    <strong>Source:</strong>
+                    <span id="productSource"></span>
+                </div>
+
+
+                <!-- OWNER PRICE -->
+
+                <div
+                    id="priceSection"
+                    class="price-section"
+                >
+
+                    <label for="sellingPrice">
+                        Owner Selling Price
+                    </label>
+
+                    <input
+                        type="number"
+                        id="sellingPrice"
+                        placeholder="Enter selling price"
+                        min="0"
+                        step="0.01"
+                    >
+
+                    <button id="saveProductButton">
+                        Save Product
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="js/app.js"></script>
+
+</body>
+</html>
