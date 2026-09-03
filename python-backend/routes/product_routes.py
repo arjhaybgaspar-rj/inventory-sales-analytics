@@ -1,84 +1,39 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request, jsonify
 from config.database import get_db_connection
+from utils.auth import login_required
 
-product_bp = Blueprint("products", __name__)
+product_bp = Blueprint("products", __name__, url_prefix="/api/products")
 
 
-@product_bp.route("/api/products", methods=["POST"])
-def create_product():
-
+@product_bp.route("", methods=["POST"])
+@login_required(["admin", "owner", "manager"])
+def add_product():
     data = request.get_json()
-
-    if not data:
-        return jsonify({
-            "success": False,
-            "message": "Product data is required."
-        }), 400
 
     barcode = data.get("barcode")
     product_name = data.get("product_name")
     brand = data.get("brand")
     category = data.get("category")
     unit = data.get("unit")
-    image_url = data.get("image_url")
     selling_price = data.get("selling_price")
+    image_url = data.get("image_url")
+    api_source = data.get("api_source")
 
-    # Required fields
-    if not barcode:
+    if not barcode or not product_name or selling_price is None:
         return jsonify({
             "success": False,
-            "message": "Barcode is required."
-        }), 400
-
-    if not product_name:
-        return jsonify({
-            "success": False,
-            "message": "Product name is required."
-        }), 400
-
-    if not unit:
-        unit = "piece"
-
-    if selling_price is None:
-        return jsonify({
-            "success": False,
-            "message": "Selling price is required."
-        }), 400
-
-    # Check price
-    try:
-        selling_price = float(selling_price)
-
-        if selling_price < 0:
-            return jsonify({
-                "success": False,
-                "message": "Selling price cannot be negative."
-            }), 400
-
-    except (ValueError, TypeError):
-        return jsonify({
-            "success": False,
-            "message": "Selling price must be a valid number."
+            "message": "Barcode, product name, and selling price are required."
         }), 400
 
     connection = None
     cursor = None
 
     try:
-
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        # ==========================================
-        # CHECK IF BARCODE ALREADY EXISTS
-        # ==========================================
-
         cursor.execute(
-            """
-            SELECT product_id, product_name, barcode
-            FROM products
-            WHERE barcode = %s
-            """,
+            "SELECT product_id FROM products WHERE barcode = %s LIMIT 1",
             (barcode,)
         )
 
@@ -87,41 +42,36 @@ def create_product():
         if existing_product:
             return jsonify({
                 "success": False,
-                "exists": True,
-                "message": "This product is already in your product list.",
-                "product": existing_product
+                "message": "This product is already in your product list."
             }), 409
 
-        # ==========================================
-        # INSERT PRODUCT
-        # ==========================================
-
-        insert_query = """
+        query = """
             INSERT INTO products
             (
                 barcode,
                 product_name,
-                category,
                 brand,
+                category,
+                unit,
+                selling_price,
                 image_url,
                 api_source,
-                unit,
-                selling_price
+                status
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'active')
         """
 
         cursor.execute(
-            insert_query,
+            query,
             (
                 barcode,
                 product_name,
-                category,
                 brand,
-                image_url,
-                "Open Food Facts",
+                category,
                 unit,
-                selling_price
+                selling_price,
+                image_url,
+                api_source
             )
         )
 
@@ -129,51 +79,75 @@ def create_product():
 
         product_id = cursor.lastrowid
 
-        # ==========================================
-        # GET SAVED PRODUCT
-        # ==========================================
+        return jsonify({
+            "success": True,
+            "message": "Product added successfully.",
+            "product_id": product_id
+        }), 201
 
-        cursor.execute(
-            """
+    except Exception as e:
+        if connection:
+            connection.rollback()
+
+        print("Add product error:", e)
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to add product."
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if connection:
+            connection.close()
+
+
+@product_bp.route("", methods=["GET"])
+@login_required(["admin", "owner", "manager"])
+def get_products():
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        query = """
             SELECT
                 product_id,
                 barcode,
                 product_name,
-                category,
                 brand,
-                image_url,
-                api_source,
+                category,
                 unit,
                 selling_price,
+                image_url,
+                api_source,
                 status,
                 created_at
             FROM products
-            WHERE product_id = %s
-            """,
-            (product_id,)
-        )
+            ORDER BY product_id DESC
+        """
 
-        saved_product = cursor.fetchone()
+        cursor.execute(query)
+        products = cursor.fetchall()
 
         return jsonify({
             "success": True,
-            "message": "Product added successfully.",
-            "product": saved_product
-        }), 201
+            "products": products
+        }), 200
 
     except Exception as e:
-
-        if connection:
-            connection.rollback()
+        print("Get products error:", e)
 
         return jsonify({
             "success": False,
-            "message": "Failed to add product.",
-            "error": str(e)
+            "message": "Unable to retrieve products."
         }), 500
 
     finally:
-
         if cursor:
             cursor.close()
 

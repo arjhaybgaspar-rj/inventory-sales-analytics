@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Inventory Sales Analytics</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <main class="dashboard-page">
+
+        <header class="dashboard-header">
+            <div>
+                <h1>Inventory Sales Analytics</h1>
+                <p>Real-Time Stock Monitoring System</p>
+            </div>
+
+            <button id="logoutButton">Logout</button>
+        </header>
+
+        <section class="welcome-section">
+            <h2 id="welcomeMessage">Welcome!</h2>
+            <p id="userRole"></p>
+        </section>
+
+        <section class="dashboard-grid">
+
+            <div class="dashboard-card">
+                <h3>Products</h3>
+                <p>Manage your products and barcodes.</p>
+                <button id="productsButton">Products</button>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>Inventory</h3>
+                <p>Monitor stock levels and batches.</p>
+                <button id="inventoryButton">Inventory</button>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>Sales</h3>
+                <p>Process and monitor sales.</p>
+                <button id="salesButton">Sales</button>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>Reports</h3>
+                <p>View sales and inventory analytics.</p>
+                <button id="reportsButton">Reports</button>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="js/dashboard.js"></script>
+
+</body>
+</html>
