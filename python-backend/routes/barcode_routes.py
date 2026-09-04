@@ -3,20 +3,23 @@ from config.database import get_db_connection
 from utils.auth import login_required
 import requests
 
-
 barcode_bp = Blueprint("barcode", __name__)
-
 
 @barcode_bp.route("/api/barcode/lookup", methods=["GET"])
 @login_required(["admin", "owner", "manager", "cashier"])
 def lookup_barcode():
-
-    barcode = request.args.get("barcode")
+    barcode = request.args.get("barcode", "").strip()
 
     if not barcode:
         return jsonify({
             "success": False,
             "message": "Barcode is required."
+        }), 400
+
+    if not barcode.isdigit():
+        return jsonify({
+            "success": False,
+            "message": "Barcode must contain numbers only."
         }), 400
 
     connection = None
@@ -26,7 +29,7 @@ def lookup_barcode():
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        query = """
+        cursor.execute("""
             SELECT
                 product_id,
                 barcode,
@@ -40,9 +43,8 @@ def lookup_barcode():
                 status
             FROM products
             WHERE barcode = %s
-        """
+        """, (barcode,))
 
-        cursor.execute(query, (barcode,))
         existing_product = cursor.fetchone()
 
     except Exception as e:
@@ -69,7 +71,9 @@ def lookup_barcode():
         })
 
     api_url = (
-        f"https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
+        f"https://world.openfoodfacts.org/"
+        f"api/v3/product/{barcode}"
+        f"?product_type=all"
     )
 
     headers = {
@@ -80,7 +84,7 @@ def lookup_barcode():
         response = requests.get(
             api_url,
             headers=headers,
-            timeout=15
+            timeout=20
         )
 
     except requests.exceptions.Timeout:
@@ -92,14 +96,32 @@ def lookup_barcode():
     except requests.exceptions.RequestException as e:
         return jsonify({
             "success": False,
-            "message": "Unable to connect to product API.",
+            "message": "Unable to connect to Open Food Facts.",
             "error": str(e)
         }), 502
+
+    if response.status_code == 404:
+        return jsonify({
+            "success": True,
+            "exists": False,
+            "found_in_api": False,
+            "message": "Product barcode was not found in Open Food Facts.",
+            "product": {
+                "barcode": barcode,
+                "product_name": "",
+                "brand": "",
+                "category": "",
+                "unit": "",
+                "image_url": "",
+                "api_source": "",
+                "selling_price": None
+            }
+        })
 
     if response.status_code != 200:
         return jsonify({
             "success": False,
-            "message": "Product API returned an error.",
+            "message": "Open Food Facts returned an error.",
             "status_code": response.status_code
         }), 502
 
@@ -109,24 +131,46 @@ def lookup_barcode():
     except ValueError:
         return jsonify({
             "success": False,
-            "message": "Invalid response from product API."
+            "message": "Invalid response from Open Food Facts."
         }), 502
 
-    if data.get("status") != 1:
+    product_data = data.get("product")
+
+    if not product_data:
         return jsonify({
             "success": True,
             "exists": False,
             "found_in_api": False,
-            "message": "Product barcode was not found."
-        }), 404
+            "message": "Product barcode was not found in Open Food Facts.",
+            "product": {
+                "barcode": barcode,
+                "product_name": "",
+                "brand": "",
+                "category": "",
+                "unit": "",
+                "image_url": "",
+                "api_source": "",
+                "selling_price": None
+            }
+        })
 
-    product = data.get("product", {})
+    product_name = (
+        product_data.get("product_name")
+        or product_data.get("product_name_en")
+        or product_data.get("generic_name")
+        or ""
+    )
 
-    product_name = product.get("product_name") or ""
-    brand = product.get("brands") or ""
-    category = product.get("categories") or ""
-    unit = product.get("quantity") or ""
-    image_url = product.get("image_url") or ""
+    brand = product_data.get("brands") or ""
+    category = product_data.get("categories") or ""
+    unit = product_data.get("quantity") or ""
+
+    image_url = (
+        product_data.get("image_front_url")
+        or product_data.get("image_url")
+        or product_data.get("image_front_small_url")
+        or ""
+    )
 
     return jsonify({
         "success": True,

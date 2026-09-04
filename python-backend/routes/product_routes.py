@@ -105,7 +105,7 @@ def add_product():
 
 
 @product_bp.route("", methods=["GET"])
-@login_required(["admin", "owner", "manager"])
+@login_required(["admin", "owner", "manager", "cashier"])
 def get_products():
     connection = None
     cursor = None
@@ -128,6 +128,7 @@ def get_products():
                 status,
                 created_at
             FROM products
+            WHERE status = 'active'
             ORDER BY product_id DESC
         """
 

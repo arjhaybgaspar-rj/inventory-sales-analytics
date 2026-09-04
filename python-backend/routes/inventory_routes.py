@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session
 from config.database import get_db_connection
 from utils.auth import login_required
 
@@ -81,6 +81,7 @@ def stock_in():
     expiry_date = data.get("expiry_date")
     received_date = data.get("received_date")
     reorder_level = data.get("reorder_level", 10)
+    created_by = session.get("user_id")
 
     if not product_id:
         return jsonify({
@@ -113,9 +114,12 @@ def stock_in():
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
+        connection.start_transaction()
+
         cursor.execute(
             """
-            SELECT product_id
+            SELECT
+                product_id
             FROM products
             WHERE product_id = %s
             AND status = 'active'
@@ -127,6 +131,8 @@ def stock_in():
         product = cursor.fetchone()
 
         if not product:
+            connection.rollback()
+
             return jsonify({
                 "success": False,
                 "message": "Product not found."
@@ -177,6 +183,36 @@ def stock_in():
 
         inventory_id = cursor.lastrowid
 
+        cursor.execute(
+            """
+            INSERT INTO inventory_movements
+            (
+                batch_id,
+                movement_type,
+                quantity,
+                reference_id,
+                notes,
+                created_by
+            )
+            VALUES
+            (
+                %s,
+                'IN',
+                %s,
+                %s,
+                %s,
+                %s
+            )
+            """,
+            (
+                batch_id,
+                quantity,
+                inventory_id,
+                "Stock-in transaction",
+                created_by
+            )
+        )
+
         connection.commit()
 
         return jsonify({
@@ -195,6 +231,66 @@ def stock_in():
         return jsonify({
             "success": False,
             "message": "Unable to process stock-in."
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if connection:
+            connection.close()
+
+
+@inventory_bp.route("/movements", methods=["GET"])
+@login_required(["admin", "owner", "manager"])
+def get_inventory_movements():
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        query = """
+            SELECT
+                im.movement_id,
+                im.batch_id,
+                im.movement_type,
+                im.quantity,
+                im.reference_id,
+                im.notes,
+                im.created_by,
+                im.created_at,
+                b.batch_number,
+                b.expiry_date,
+                p.product_id,
+                p.product_name,
+                p.barcode,
+                u.full_name AS created_by_name
+            FROM inventory_movements im
+            INNER JOIN batches b
+                ON im.batch_id = b.batch_id
+            INNER JOIN products p
+                ON b.product_id = p.product_id
+            LEFT JOIN users u
+                ON im.created_by = u.user_id
+            ORDER BY im.movement_id DESC
+        """
+
+        cursor.execute(query)
+        movements = cursor.fetchall()
+
+        return jsonify({
+            "success": True,
+            "movements": movements
+        }), 200
+
+    except Exception as e:
+        print("Get inventory movements error:", e)
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to retrieve inventory movements."
         }), 500
 
     finally:

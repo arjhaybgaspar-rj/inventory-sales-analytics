@@ -11,6 +11,7 @@ function Sales() {
     const [loading, setLoading] = useState(true);
     const [salesLoading, setSalesLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
 
     useEffect(() => {
         loadProducts();
@@ -18,6 +19,8 @@ function Sales() {
     }, []);
 
     const loadProducts = async () => {
+        setLoading(true);
+
         try {
             const response = await fetch(
                 API_BASE_URL + "/api/products",
@@ -33,7 +36,7 @@ function Sales() {
             } else {
                 setMessage(
                     data.message ||
-                        "Unable to load products."
+                    "Unable to load products."
                 );
             }
         } catch (error) {
@@ -63,7 +66,7 @@ function Sales() {
             } else {
                 setMessage(
                     data.message ||
-                        "Unable to load sales."
+                    "Unable to load sales."
                 );
             }
         } catch (error) {
@@ -80,19 +83,16 @@ function Sales() {
 
         const existingItem = cart.find(
             (item) =>
-                item.product_id ===
-                product.product_id
+                item.product_id === product.product_id
         );
 
         if (existingItem) {
             setCart(
                 cart.map((item) =>
-                    item.product_id ===
-                    product.product_id
+                    item.product_id === product.product_id
                         ? {
                               ...item,
-                              quantity:
-                                  item.quantity + 1
+                              quantity: item.quantity + 1
                           }
                         : item
                 )
@@ -104,16 +104,13 @@ function Sales() {
         setCart([
             ...cart,
             {
-                product_id:
-                    product.product_id,
-                product_name:
-                    product.product_name,
-                barcode:
-                    product.barcode,
-                selling_price:
-                    Number(
-                        product.selling_price
-                    ),
+                product_id: product.product_id,
+                product_name: product.product_name,
+                barcode: product.barcode,
+                selling_price: Number(
+                    product.selling_price
+                ),
+                image_url: product.image_url,
                 quantity: 1
             }
         ]);
@@ -123,8 +120,7 @@ function Sales() {
         productId,
         quantity
     ) => {
-        const newQuantity =
-            Number(quantity);
+        const newQuantity = Number(quantity);
 
         if (newQuantity <= 0) {
             removeFromCart(productId);
@@ -133,26 +129,49 @@ function Sales() {
 
         setCart(
             cart.map((item) =>
-                item.product_id ===
-                productId
+                item.product_id === productId
                     ? {
                           ...item,
-                          quantity:
-                              newQuantity
+                          quantity: newQuantity
                       }
                     : item
             )
         );
     };
 
-    const removeFromCart = (
-        productId
-    ) => {
+    const increaseQuantity = (productId) => {
+        setCart(
+            cart.map((item) =>
+                item.product_id === productId
+                    ? {
+                          ...item,
+                          quantity: item.quantity + 1
+                      }
+                    : item
+            )
+        );
+    };
+
+    const decreaseQuantity = (productId) => {
+        setCart(
+            cart.map((item) =>
+                item.product_id === productId
+                    ? {
+                          ...item,
+                          quantity: item.quantity - 1
+                      }
+                    : item
+            ).filter(
+                (item) => item.quantity > 0
+            )
+        );
+    };
+
+    const removeFromCart = (productId) => {
         setCart(
             cart.filter(
                 (item) =>
-                    item.product_id !==
-                    productId
+                    item.product_id !== productId
             )
         );
     };
@@ -162,24 +181,42 @@ function Sales() {
         setMessage("");
     };
 
-    const totalAmount =
-        cart.reduce(
-            (total, item) =>
-                total +
-                Number(
-                    item.selling_price
-                ) *
-                    Number(
-                        item.quantity
-                    ),
-            0
-        );
+    const totalItems = cart.reduce(
+        (total, item) =>
+            total + Number(item.quantity),
+        0
+    );
+
+    const totalAmount = cart.reduce(
+        (total, item) =>
+            total +
+            Number(item.selling_price) *
+                Number(item.quantity),
+        0
+    );
+
+    const filteredProducts = products.filter(
+        (product) => {
+            const search =
+                searchTerm.toLowerCase();
+
+            return (
+                product.product_name
+                    .toLowerCase()
+                    .includes(search) ||
+                product.barcode
+                    .toLowerCase()
+                    .includes(search) ||
+                (product.brand || "")
+                    .toLowerCase()
+                    .includes(search)
+            );
+        }
+    );
 
     const processSale = async () => {
         if (cart.length === 0) {
-            setMessage(
-                "Cart is empty."
-            );
+            setMessage("Cart is empty.");
             return;
         }
 
@@ -188,16 +225,14 @@ function Sales() {
 
         try {
             const response = await fetch(
-                API_BASE_URL +
-                    "/api/sales",
+                API_BASE_URL + "/api/sales",
                 {
                     method: "POST",
                     headers: {
                         "Content-Type":
                             "application/json"
                     },
-                    credentials:
-                        "include",
+                    credentials: "include",
                     body: JSON.stringify({
                         payment_method:
                             paymentMethod,
@@ -233,7 +268,7 @@ function Sales() {
             } else {
                 setMessage(
                     data.message ||
-                        "Unable to process sale."
+                    "Unable to process sale."
                 );
             }
         } catch (error) {
@@ -247,17 +282,24 @@ function Sales() {
 
     return (
         <main className="sales-page">
-            <header className="sales-header">
+            <header className="sales-page-header">
                 <div>
-                    <h1>Sales</h1>
+                    <span className="sales-page-label">
+                        POINT OF SALE
+                    </span>
+
+                    <h1>
+                        Sales
+                    </h1>
 
                     <p>
-                        Process sales and manage
-                        customer purchases.
+                        Process customer purchases
+                        and manage transactions.
                     </p>
                 </div>
 
                 <button
+                    className="sales-dashboard-button"
                     onClick={() => {
                         window.location.href =
                             "/dashboard";
@@ -267,9 +309,9 @@ function Sales() {
                 </button>
             </header>
 
-            <section className="sales-content">
-                <div className="sales-products-section">
-                    <div className="sales-section-header">
+            <section className="sales-workspace">
+                <div className="sales-products-panel">
+                    <div className="sales-panel-header">
                         <div>
                             <h2>
                                 Products
@@ -277,12 +319,13 @@ function Sales() {
 
                             <p>
                                 Select a product
-                                to add it to
-                                the cart.
+                                to add it to the
+                                cart.
                             </p>
                         </div>
 
                         <button
+                            className="sales-refresh-button"
                             onClick={
                                 loadProducts
                             }
@@ -291,19 +334,34 @@ function Sales() {
                         </button>
                     </div>
 
+                    <div className="sales-search">
+                        <input
+                            type="text"
+                            placeholder="Search product or barcode..."
+                            value={searchTerm}
+                            onChange={(event) =>
+                                setSearchTerm(
+                                    event.target.value
+                                )
+                            }
+                        />
+                    </div>
+
                     {loading ? (
-                        <p>
-                            Loading products...
-                        </p>
-                    ) : products.length ===
-                      0 ? (
-                        <p>
-                            No products
-                            available.
-                        </p>
+                        <div className="sales-empty-state">
+                            <p>
+                                Loading products...
+                            </p>
+                        </div>
+                    ) : filteredProducts.length === 0 ? (
+                        <div className="sales-empty-state">
+                            <p>
+                                No products found.
+                            </p>
+                        </div>
                     ) : (
                         <div className="sales-product-grid">
-                            {products.map(
+                            {filteredProducts.map(
                                 (product) => (
                                     <div
                                         className="sales-product-card"
@@ -311,20 +369,22 @@ function Sales() {
                                             product.product_id
                                         }
                                     >
-                                        {product.image_url ? (
-                                            <img
-                                                src={
-                                                    product.image_url
-                                                }
-                                                alt={
-                                                    product.product_name
-                                                }
-                                            />
-                                        ) : (
-                                            <div className="sales-product-no-image">
-                                                No Image
-                                            </div>
-                                        )}
+                                        <div className="sales-product-image-wrapper">
+                                            {product.image_url ? (
+                                                <img
+                                                    src={
+                                                        product.image_url
+                                                    }
+                                                    alt={
+                                                        product.product_name
+                                                    }
+                                                />
+                                            ) : (
+                                                <div className="sales-product-no-image">
+                                                    No Image
+                                                </div>
+                                            )}
+                                        </div>
 
                                         <div className="sales-product-info">
                                             <h3>
@@ -333,36 +393,37 @@ function Sales() {
                                                 }
                                             </h3>
 
-                                            <p>
+                                            <p className="sales-product-brand">
                                                 {product.brand ||
                                                     "No brand"}
                                             </p>
 
-                                            <p>
+                                            <span className="sales-product-barcode">
                                                 {
                                                     product.barcode
                                                 }
-                                            </p>
+                                            </span>
 
-                                            <strong>
-                                                ₱
-                                                {Number(
-                                                    product.selling_price
-                                                ).toFixed(
-                                                    2
-                                                )}
-                                            </strong>
+                                            <div className="sales-product-bottom">
+                                                <strong>
+                                                    ₱
+                                                    {Number(
+                                                        product.selling_price
+                                                    ).toFixed(
+                                                        2
+                                                    )}
+                                                </strong>
 
-                                            <button
-                                                onClick={() =>
-                                                    addToCart(
-                                                        product
-                                                    )
-                                                }
-                                            >
-                                                Add to
-                                                Cart
-                                            </button>
+                                                <button
+                                                    onClick={() =>
+                                                        addToCart(
+                                                            product
+                                                        )
+                                                    }
+                                                >
+                                                    Add
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 )
@@ -371,45 +432,54 @@ function Sales() {
                     )}
                 </div>
 
-                <div className="sales-cart-section">
-                    <div className="sales-section-header">
+                <aside className="sales-cart-panel">
+                    <div className="sales-panel-header">
                         <div>
                             <h2>
-                                Cart
+                                Current Order
                             </h2>
 
                             <p>
-                                {cart.length}{" "}
-                                product
-                                {cart.length !==
+                                {totalItems}{" "}
+                                item
+                                {totalItems !==
                                 1
                                     ? "s"
-                                    : ""}{" "}
-                                in cart.
+                                    : ""}
                             </p>
                         </div>
 
-                        {cart.length >
-                            0 && (
+                        {cart.length > 0 && (
                             <button
+                                className="sales-clear-button"
                                 onClick={
                                     clearCart
                                 }
                             >
-                                Clear Cart
+                                Clear
                             </button>
                         )}
                     </div>
 
-                    {cart.length ===
-                    0 ? (
-                        <p>
-                            No products in
-                            cart.
-                        </p>
-                    ) : (
-                        <div className="sales-cart">
-                            {cart.map(
+                    <div className="sales-cart-list">
+                        {cart.length === 0 ? (
+                            <div className="sales-cart-empty">
+                                <div>
+                                    🛒
+                                </div>
+
+                                <h3>
+                                    Cart is empty
+                                </h3>
+
+                                <p>
+                                    Select products
+                                    from the left
+                                    panel.
+                                </p>
+                            </div>
+                        ) : (
+                            cart.map(
                                 (item) => (
                                     <div
                                         className="sales-cart-item"
@@ -417,7 +487,24 @@ function Sales() {
                                             item.product_id
                                         }
                                     >
-                                        <div>
+                                        <div className="sales-cart-item-image">
+                                            {item.image_url ? (
+                                                <img
+                                                    src={
+                                                        item.image_url
+                                                    }
+                                                    alt={
+                                                        item.product_name
+                                                    }
+                                                />
+                                            ) : (
+                                                <span>
+                                                    No
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="sales-cart-item-details">
                                             <h3>
                                                 {
                                                     item.product_name
@@ -432,27 +519,49 @@ function Sales() {
                                                     2
                                                 )}
                                             </p>
+
+                                            <div className="sales-quantity-controls">
+                                                <button
+                                                    onClick={() =>
+                                                        decreaseQuantity(
+                                                            item.product_id
+                                                        )
+                                                    }
+                                                >
+                                                    −
+                                                </button>
+
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={
+                                                        item.quantity
+                                                    }
+                                                    onChange={(
+                                                        event
+                                                    ) =>
+                                                        updateQuantity(
+                                                            item.product_id,
+                                                            event
+                                                                .target
+                                                                .value
+                                                        )
+                                                    }
+                                                />
+
+                                                <button
+                                                    onClick={() =>
+                                                        increaseQuantity(
+                                                            item.product_id
+                                                        )
+                                                    }
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
                                         </div>
 
-                                        <div className="sales-cart-controls">
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                value={
-                                                    item.quantity
-                                                }
-                                                onChange={(
-                                                    event
-                                                ) =>
-                                                    updateQuantity(
-                                                        item.product_id,
-                                                        event
-                                                            .target
-                                                            .value
-                                                    )
-                                                }
-                                            />
-
+                                        <div className="sales-cart-item-total">
                                             <strong>
                                                 ₱
                                                 {(
@@ -479,12 +588,12 @@ function Sales() {
                                         </div>
                                     </div>
                                 )
-                            )}
-                        </div>
-                    )}
+                            )
+                        )}
+                    </div>
 
                     <div className="sales-checkout">
-                        <div className="payment-field">
+                        <div className="sales-payment-row">
                             <label htmlFor="paymentMethod">
                                 Payment Method
                             </label>
@@ -498,9 +607,7 @@ function Sales() {
                                     event
                                 ) =>
                                     setPaymentMethod(
-                                        event
-                                            .target
-                                            .value
+                                        event.target.value
                                     )
                                 }
                             >
@@ -518,7 +625,7 @@ function Sales() {
                             </select>
                         </div>
 
-                        <div className="sales-total">
+                        <div className="sales-total-row">
                             <span>
                                 Total
                             </span>
@@ -538,8 +645,7 @@ function Sales() {
                             }
                             disabled={
                                 processing ||
-                                cart.length ===
-                                    0
+                                cart.length === 0
                             }
                         >
                             {processing
@@ -553,24 +659,24 @@ function Sales() {
                             </p>
                         )}
                     </div>
-                </div>
+                </aside>
             </section>
 
             <section className="sales-history-section">
-                <div className="sales-section-header">
+                <div className="sales-panel-header">
                     <div>
                         <h2>
                             Sales History
                         </h2>
 
                         <p>
-                            View all completed
-                            sales
+                            View completed
                             transactions.
                         </p>
                     </div>
 
                     <button
+                        className="sales-refresh-button"
                         onClick={
                             loadSales
                         }
@@ -580,17 +686,20 @@ function Sales() {
                 </div>
 
                 {salesLoading ? (
-                    <p>
-                        Loading sales
-                        history...
-                    </p>
-                ) : sales.length ===
-                  0 ? (
-                    <p>
-                        No sales
-                        transactions
-                        found.
-                    </p>
+                    <div className="sales-empty-state">
+                        <p>
+                            Loading sales
+                            history...
+                        </p>
+                    </div>
+                ) : sales.length === 0 ? (
+                    <div className="sales-empty-state">
+                        <p>
+                            No sales
+                            transactions
+                            found.
+                        </p>
+                    </div>
                 ) : (
                     <div className="sales-history-table-container">
                         <table className="sales-history-table">
@@ -599,18 +708,21 @@ function Sales() {
                                     <th>
                                         Sale ID
                                     </th>
+
                                     <th>
                                         Cashier
                                     </th>
+
                                     <th>
-                                        Total Amount
+                                        Total
                                     </th>
+
                                     <th>
                                         Payment
-                                        Method
                                     </th>
+
                                     <th>
-                                        Sale Date
+                                        Date
                                     </th>
                                 </tr>
                             </thead>
@@ -624,10 +736,12 @@ function Sales() {
                                             }
                                         >
                                             <td>
-                                                #
-                                                {
-                                                    sale.sale_id
-                                                }
+                                                <strong>
+                                                    #
+                                                    {
+                                                        sale.sale_id
+                                                    }
+                                                </strong>
                                             </td>
 
                                             <td>
@@ -646,9 +760,11 @@ function Sales() {
                                             </td>
 
                                             <td>
-                                                {
-                                                    sale.payment_method
-                                                }
+                                                <span className="payment-badge">
+                                                    {
+                                                        sale.payment_method
+                                                    }
+                                                </span>
                                             </td>
 
                                             <td>

@@ -5,7 +5,9 @@ const API_BASE_URL = "http://localhost:5000";
 function Inventory() {
     const [inventory, setInventory] = useState([]);
     const [products, setProducts] = useState([]);
+    const [movements, setMovements] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [movementsLoading, setMovementsLoading] = useState(true);
     const [message, setMessage] = useState("");
     const [saving, setSaving] = useState(false);
 
@@ -35,7 +37,7 @@ function Inventory() {
             } else {
                 setMessage(
                     data.message ||
-                        "Unable to load inventory."
+                    "Unable to load inventory."
                 );
             }
         } catch (error) {
@@ -63,7 +65,7 @@ function Inventory() {
             } else {
                 setMessage(
                     data.message ||
-                        "Unable to load products."
+                    "Unable to load products."
                 );
             }
         } catch (error) {
@@ -73,9 +75,40 @@ function Inventory() {
         }
     };
 
+    const loadMovements = async () => {
+        setMovementsLoading(true);
+
+        try {
+            const response = await fetch(
+                API_BASE_URL + "/api/inventory/movements",
+                {
+                    credentials: "include"
+                }
+            );
+
+            const data = await response.json();
+
+            if (data.success) {
+                setMovements(data.movements);
+            } else {
+                setMessage(
+                    data.message ||
+                    "Unable to load inventory history."
+                );
+            }
+        } catch (error) {
+            setMessage(
+                "Unable to load inventory history."
+            );
+        }
+
+        setMovementsLoading(false);
+    };
+
     useEffect(() => {
         loadInventory();
         loadProducts();
+        loadMovements();
     }, []);
 
     const handleStockIn = async (event) => {
@@ -121,7 +154,7 @@ function Inventory() {
         try {
             const response = await fetch(
                 API_BASE_URL +
-                    "/api/inventory/stock-in",
+                "/api/inventory/stock-in",
                 {
                     method: "POST",
                     headers: {
@@ -168,10 +201,11 @@ function Inventory() {
                 setReorderLevel("10");
 
                 await loadInventory();
+                await loadMovements();
             } else {
                 setMessage(
                     data.message ||
-                        "Unable to process stock-in."
+                    "Unable to process stock-in."
                 );
             }
         } catch (error) {
@@ -190,21 +224,9 @@ function Inventory() {
         const reorderValue =
             Number(item.reorder_level);
 
-        if (
-            quantityValue <=
-            reorderValue
-        ) {
-            return {
-                label: "Low Stock",
-                className: "low-stock"
-            };
-        }
-
         if (item.expiry_date) {
             const expiryDateValue =
-                new Date(
-                    item.expiry_date
-                );
+                new Date(item.expiry_date);
 
             const today = new Date();
 
@@ -228,7 +250,7 @@ function Inventory() {
             ) {
                 return {
                     label: "Expired",
-                    className: "expired"
+                    className: "status-expired"
                 };
             }
 
@@ -236,8 +258,7 @@ function Inventory() {
                 new Date();
 
             thirtyDaysFromNow.setDate(
-                thirtyDaysFromNow.getDate() +
-                    30
+                thirtyDaysFromNow.getDate() + 30
             );
 
             thirtyDaysFromNow.setHours(
@@ -253,232 +274,233 @@ function Inventory() {
             ) {
                 return {
                     label: "Expiring Soon",
-                    className: "expiring"
+                    className: "status-low"
                 };
             }
         }
 
+        if (
+            quantityValue <=
+            reorderValue
+        ) {
+            return {
+                label: "Low Stock",
+                className: "status-low"
+            };
+        }
+
         return {
             label: "Available",
-            className: "available"
+            className: "status-active"
         };
+    };
+
+    const getMovementClass = (movementType) => {
+        if (movementType === "IN") {
+            return "status-active";
+        }
+
+        return "status-low";
     };
 
     return (
         <main className="inventory-page">
-            <header className="inventory-header">
+            <header className="products-header">
                 <div>
-                    <h1>Inventory</h1>
+                    <h1>
+                        Inventory
+                    </h1>
 
                     <p>
                         Monitor stock levels,
-                        batches, and expiry
-                        dates.
+                        batches, and expiry dates.
                     </p>
                 </div>
-
-                <button
-                    onClick={() => {
-                        window.location.href =
-                            "/dashboard";
-                    }}
-                >
-                    Dashboard
-                </button>
             </header>
 
-            <section className="stock-in-section">
-                <div className="stock-in-header">
-                    <div>
-                        <h2>Stock-In</h2>
+            <section className="sales-form">
+                <h2>
+                    Stock-In
+                </h2>
 
-                        <p>
-                            Add a new batch of
-                            stock to your
-                            inventory.
-                        </p>
-                    </div>
-                </div>
+                <p>
+                    Add a new batch of stock to
+                    your inventory.
+                </p>
 
                 <form
                     className="stock-in-form"
-                    onSubmit={
-                        handleStockIn
-                    }
+                    onSubmit={handleStockIn}
                 >
-                    <div className="stock-in-field">
-                        <label htmlFor="product">
-                            Product
-                        </label>
+                    <div className="sales-form-row">
+                        <div className="sales-form-group">
+                            <label htmlFor="product">
+                                Product
+                            </label>
 
-                        <select
-                            id="product"
-                            value={productId}
-                            onChange={(event) =>
-                                setProductId(
-                                    event.target
-                                        .value
-                                )
-                            }
-                        >
-                            <option value="">
-                                Select product
-                            </option>
+                            <select
+                                id="product"
+                                value={productId}
+                                onChange={(event) =>
+                                    setProductId(
+                                        event.target.value
+                                    )
+                                }
+                            >
+                                <option value="">
+                                    Select product
+                                </option>
 
-                            {products.map(
-                                (product) => (
-                                    <option
-                                        key={
-                                            product.product_id
-                                        }
-                                        value={
-                                            product.product_id
-                                        }
-                                    >
-                                        {
-                                            product.product_name
-                                        }{" "}
-                                        -{" "}
-                                        {
-                                            product.barcode
-                                        }
-                                    </option>
-                                )
-                            )}
-                        </select>
+                                {products.map(
+                                    (product) => (
+                                        <option
+                                            key={
+                                                product.product_id
+                                            }
+                                            value={
+                                                product.product_id
+                                            }
+                                        >
+                                            {
+                                                product.product_name
+                                            }{" "}
+                                            -{" "}
+                                            {
+                                                product.barcode
+                                            }
+                                        </option>
+                                    )
+                                )}
+                            </select>
+                        </div>
+
+                        <div className="sales-form-group">
+                            <label htmlFor="batchNumber">
+                                Batch Number
+                            </label>
+
+                            <input
+                                type="text"
+                                id="batchNumber"
+                                value={batchNumber}
+                                onChange={(event) =>
+                                    setBatchNumber(
+                                        event.target.value
+                                    )
+                                }
+                                placeholder="Enter batch number"
+                            />
+                        </div>
                     </div>
 
-                    <div className="stock-in-field">
-                        <label htmlFor="batchNumber">
-                            Batch Number
-                        </label>
+                    <div className="sales-form-row">
+                        <div className="sales-form-group">
+                            <label htmlFor="quantity">
+                                Quantity
+                            </label>
 
-                        <input
-                            type="text"
-                            id="batchNumber"
-                            value={batchNumber}
-                            onChange={(event) =>
-                                setBatchNumber(
-                                    event.target
-                                        .value
-                                )
-                            }
-                            placeholder="Enter batch number"
-                        />
+                            <input
+                                type="number"
+                                id="quantity"
+                                value={quantity}
+                                onChange={(event) =>
+                                    setQuantity(
+                                        event.target.value
+                                    )
+                                }
+                                placeholder="Enter quantity"
+                                min="1"
+                            />
+                        </div>
+
+                        <div className="sales-form-group">
+                            <label htmlFor="acquisitionCost">
+                                Acquisition Cost
+                            </label>
+
+                            <input
+                                type="number"
+                                id="acquisitionCost"
+                                value={
+                                    acquisitionCost
+                                }
+                                onChange={(event) =>
+                                    setAcquisitionCost(
+                                        event.target.value
+                                    )
+                                }
+                                placeholder="Enter acquisition cost"
+                                min="0"
+                                step="0.01"
+                            />
+                        </div>
                     </div>
 
-                    <div className="stock-in-field">
-                        <label htmlFor="quantity">
-                            Quantity
-                        </label>
+                    <div className="sales-form-row">
+                        <div className="sales-form-group">
+                            <label htmlFor="expiryDate">
+                                Expiry Date
+                            </label>
 
-                        <input
-                            type="number"
-                            id="quantity"
-                            value={quantity}
-                            onChange={(event) =>
-                                setQuantity(
-                                    event.target
-                                        .value
-                                )
-                            }
-                            placeholder="Enter quantity"
-                            min="1"
-                        />
+                            <input
+                                type="date"
+                                id="expiryDate"
+                                value={expiryDate}
+                                onChange={(event) =>
+                                    setExpiryDate(
+                                        event.target.value
+                                    )
+                                }
+                            />
+                        </div>
+
+                        <div className="sales-form-group">
+                            <label htmlFor="receivedDate">
+                                Received Date
+                            </label>
+
+                            <input
+                                type="date"
+                                id="receivedDate"
+                                value={receivedDate}
+                                onChange={(event) =>
+                                    setReceivedDate(
+                                        event.target.value
+                                    )
+                                }
+                            />
+                        </div>
                     </div>
 
-                    <div className="stock-in-field">
-                        <label htmlFor="acquisitionCost">
-                            Acquisition Cost
-                        </label>
+                    <div className="sales-form-row">
+                        <div className="sales-form-group">
+                            <label htmlFor="reorderLevel">
+                                Reorder Level
+                            </label>
 
-                        <input
-                            type="number"
-                            id="acquisitionCost"
-                            value={
-                                acquisitionCost
-                            }
-                            onChange={(event) =>
-                                setAcquisitionCost(
-                                    event.target
-                                        .value
-                                )
-                            }
-                            placeholder="Enter acquisition cost"
-                            min="0"
-                            step="0.01"
-                        />
+                            <input
+                                type="number"
+                                id="reorderLevel"
+                                value={reorderLevel}
+                                onChange={(event) =>
+                                    setReorderLevel(
+                                        event.target.value
+                                    )
+                                }
+                                min="0"
+                            />
+                        </div>
                     </div>
 
-                    <div className="stock-in-field">
-                        <label htmlFor="expiryDate">
-                            Expiry Date
-                        </label>
-
-                        <input
-                            type="date"
-                            id="expiryDate"
-                            value={expiryDate}
-                            onChange={(event) =>
-                                setExpiryDate(
-                                    event.target
-                                        .value
-                                )
-                            }
-                        />
-                    </div>
-
-                    <div className="stock-in-field">
-                        <label htmlFor="receivedDate">
-                            Received Date
-                        </label>
-
-                        <input
-                            type="date"
-                            id="receivedDate"
-                            value={
-                                receivedDate
-                            }
-                            onChange={(event) =>
-                                setReceivedDate(
-                                    event.target
-                                        .value
-                                )
-                            }
-                        />
-                    </div>
-
-                    <div className="stock-in-field">
-                        <label htmlFor="reorderLevel">
-                            Reorder Level
-                        </label>
-
-                        <input
-                            type="number"
-                            id="reorderLevel"
-                            value={
-                                reorderLevel
-                            }
-                            onChange={(event) =>
-                                setReorderLevel(
-                                    event.target
-                                        .value
-                                )
-                            }
-                            min="0"
-                        />
-                    </div>
-
-                    <div className="stock-in-action">
-                        <button
-                            type="submit"
-                            disabled={saving}
-                        >
-                            {saving
-                                ? "Saving..."
-                                : "Add Stock"}
-                        </button>
-                    </div>
+                    <button
+                        type="submit"
+                        className="sales-submit-button"
+                        disabled={saving}
+                    >
+                        {saving
+                            ? "Saving..."
+                            : "Add Stock"}
+                    </button>
                 </form>
 
                 {message && (
@@ -488,8 +510,8 @@ function Inventory() {
                 )}
             </section>
 
-            <section className="inventory-section">
-                <div className="inventory-section-header">
+            <section className="inventory-section dashboard-section">
+                <div className="products-list-header">
                     <div>
                         <h2>
                             Inventory List
@@ -498,19 +520,19 @@ function Inventory() {
                         <p>
                             {inventory.length}{" "}
                             inventory item
-                            {inventory.length !==
-                            1
+                            {inventory.length !== 1
                                 ? "s"
                                 : ""}.
                         </p>
                     </div>
 
                     <button
-                        onClick={
-                            loadInventory
-                        }
+                        onClick={loadInventory}
+                        disabled={loading}
                     >
-                        Refresh
+                        {loading
+                            ? "Loading..."
+                            : "Refresh"}
                     </button>
                 </div>
 
@@ -518,8 +540,7 @@ function Inventory() {
                     <p>
                         Loading inventory...
                     </p>
-                ) : inventory.length ===
-                  0 ? (
+                ) : inventory.length === 0 ? (
                     <p>
                         No inventory found.
                     </p>
@@ -531,29 +552,35 @@ function Inventory() {
                                     <th>
                                         Product
                                     </th>
+
                                     <th>
                                         Barcode
                                     </th>
+
                                     <th>
                                         Batch
                                     </th>
+
                                     <th>
                                         Quantity
                                     </th>
+
                                     <th>
                                         Reorder Level
                                     </th>
+
                                     <th>
-                                        Acquisition
-                                        Cost
+                                        Acquisition Cost
                                     </th>
+
                                     <th>
                                         Expiry Date
                                     </th>
+
                                     <th>
-                                        Received
-                                        Date
+                                        Received Date
                                     </th>
+
                                     <th>
                                         Status
                                     </th>
@@ -587,7 +614,7 @@ function Inventory() {
                                                         "N/A"}
                                                 </td>
 
-                                                <td>
+                                                <td className="product-barcode">
                                                     {
                                                         item.barcode
                                                     }
@@ -620,19 +647,24 @@ function Inventory() {
                                                 </td>
 
                                                 <td>
-                                                    {item.expiry_date ||
-                                                        "N/A"}
+                                                    {item.expiry_date
+                                                        ? new Date(
+                                                            item.expiry_date
+                                                        ).toLocaleDateString()
+                                                        : "N/A"}
                                                 </td>
 
                                                 <td>
-                                                    {item.received_date ||
-                                                        "N/A"}
+                                                    {item.received_date
+                                                        ? new Date(
+                                                            item.received_date
+                                                        ).toLocaleDateString()
+                                                        : "N/A"}
                                                 </td>
 
                                                 <td>
                                                     <span
                                                         className={
-                                                            "inventory-status " +
                                                             status.className
                                                         }
                                                     >
@@ -644,6 +676,149 @@ function Inventory() {
                                             </tr>
                                         );
                                     }
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
+
+            <section className="inventory-section dashboard-section">
+                <div className="products-list-header">
+                    <div>
+                        <h2>
+                            Inventory History
+                        </h2>
+
+                        <p>
+                            Track stock-in and stock-out movements.
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={loadMovements}
+                        disabled={movementsLoading}
+                    >
+                        {movementsLoading
+                            ? "Loading..."
+                            : "Refresh"}
+                    </button>
+                </div>
+
+                {movementsLoading ? (
+                    <p>
+                        Loading inventory history...
+                    </p>
+                ) : movements.length === 0 ? (
+                    <p>
+                        No inventory movements found.
+                    </p>
+                ) : (
+                    <div className="inventory-table-container">
+                        <table className="inventory-table">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        Movement
+                                    </th>
+
+                                    <th>
+                                        Product
+                                    </th>
+
+                                    <th>
+                                        Batch
+                                    </th>
+
+                                    <th>
+                                        Quantity
+                                    </th>
+
+                                    <th>
+                                        Reference
+                                    </th>
+
+                                    <th>
+                                        User
+                                    </th>
+
+                                    <th>
+                                        Date
+                                    </th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {movements.map(
+                                    (movement) => (
+                                        <tr
+                                            key={
+                                                movement.movement_id
+                                            }
+                                        >
+                                            <td>
+                                                <span
+                                                    className={
+                                                        getMovementClass(
+                                                            movement.movement_type
+                                                        )
+                                                    }
+                                                >
+                                                    {
+                                                        movement.movement_type
+                                                    }
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <strong>
+                                                    {
+                                                        movement.product_name
+                                                    }
+                                                </strong>
+
+                                                <br />
+
+                                                <span className="product-barcode">
+                                                    {
+                                                        movement.barcode
+                                                    }
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    movement.batch_number
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    movement.quantity
+                                                }
+                                            </td>
+
+                                            <td>
+                                                #
+                                                {
+                                                    movement.reference_id
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    movement.created_by_name ||
+                                                    "N/A"
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {new Date(
+                                                    movement.created_at
+                                                ).toLocaleString()}
+                                            </td>
+                                        </tr>
+                                    )
                                 )}
                             </tbody>
                         </table>
