@@ -390,7 +390,9 @@ button:disabled {
 .status-active,
 .status-inactive,
 .status-low,
-.status-expired {
+.status-expired,
+.status-expiring-soon,
+.status-out-of-stock {
     display: inline-block;
     padding: 5px 9px;
     border-radius: 20px;
@@ -409,13 +411,24 @@ button:disabled {
 }
 
 .status-low {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.status-expiring-soon {
     background: #fef3c7;
-    color: #92400e;
+    color: #a16207;
 }
 
 .status-expired {
     background: #fee2e2;
     color: #991b1b;
+}
+
+.status-out-of-stock {
+    background: #fecaca;
+    color: #b91c1c;
+    font-weight: 800;
 }
 
 .sales-page {
@@ -1024,6 +1037,7 @@ button:disabled {
         flex-direction: column;
     }
 }
+
 .barcode-scanner {
     margin-top: 20px;
     padding: 18px;

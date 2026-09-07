@@ -6,8 +6,10 @@ function Inventory() {
     const [inventory, setInventory] = useState([]);
     const [products, setProducts] = useState([]);
     const [movements, setMovements] = useState([]);
+    const [alerts, setAlerts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [movementsLoading, setMovementsLoading] = useState(true);
+    const [alertsLoading, setAlertsLoading] = useState(true);
     const [message, setMessage] = useState("");
     const [saving, setSaving] = useState(false);
 
@@ -105,10 +107,41 @@ function Inventory() {
         setMovementsLoading(false);
     };
 
+    const loadAlerts = async () => {
+        setAlertsLoading(true);
+
+        try {
+            const response = await fetch(
+                API_BASE_URL + "/api/inventory/alerts",
+                {
+                    credentials: "include"
+                }
+            );
+
+            const data = await response.json();
+
+            if (data.success) {
+                setAlerts(data.alerts);
+            } else {
+                setMessage(
+                    data.message ||
+                    "Unable to load inventory alerts."
+                );
+            }
+        } catch (error) {
+            setMessage(
+                "Unable to load inventory alerts."
+            );
+        }
+
+        setAlertsLoading(false);
+    };
+
     useEffect(() => {
         loadInventory();
         loadProducts();
         loadMovements();
+        loadAlerts();
     }, []);
 
     const handleStockIn = async (event) => {
@@ -202,6 +235,7 @@ function Inventory() {
 
                 await loadInventory();
                 await loadMovements();
+                await loadAlerts();
             } else {
                 setMessage(
                     data.message ||
@@ -223,6 +257,13 @@ function Inventory() {
 
         const reorderValue =
             Number(item.reorder_level);
+
+        if (quantityValue === 0) {
+            return {
+                label: "Out of Stock",
+                className: "status-out-of-stock"
+            };
+        }
 
         if (item.expiry_date) {
             const expiryDateValue =
@@ -274,7 +315,7 @@ function Inventory() {
             ) {
                 return {
                     label: "Expiring Soon",
-                    className: "status-low"
+                    className: "status-expiring-soon"
                 };
             }
         }
@@ -293,6 +334,26 @@ function Inventory() {
             label: "Available",
             className: "status-active"
         };
+    };
+
+    const getAlertClass = (alertType) => {
+        if (alertType === "Out of Stock") {
+            return "status-out-of-stock";
+        }
+
+        if (alertType === "Expired") {
+            return "status-expired";
+        }
+
+        if (alertType === "Expiring Soon") {
+            return "status-expiring-soon";
+        }
+
+        if (alertType === "Low Stock") {
+            return "status-low";
+        }
+
+        return "status-active";
     };
 
     const getMovementClass = (movementType) => {
@@ -514,6 +575,126 @@ function Inventory() {
                 <div className="products-list-header">
                     <div>
                         <h2>
+                            Stock & Expiry Alerts
+                        </h2>
+
+                        <p>
+                            {alerts.length} alert
+                            {alerts.length !== 1
+                                ? "s"
+                                : ""}{" "}
+                            detected.
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={loadAlerts}
+                        disabled={alertsLoading}
+                    >
+                        {alertsLoading
+                            ? "Loading..."
+                            : "Refresh"}
+                    </button>
+                </div>
+
+                {alertsLoading ? (
+                    <p>
+                        Loading alerts...
+                    </p>
+                ) : alerts.length === 0 ? (
+                    <p>
+                        No inventory alerts found.
+                    </p>
+                ) : (
+                    <div className="inventory-table-container">
+                        <table className="inventory-table">
+                            <thead>
+                                <tr>
+                                    <th>Alert</th>
+                                    <th>Product</th>
+                                    <th>Barcode</th>
+                                    <th>Batch</th>
+                                    <th>Quantity</th>
+                                    <th>Reorder Level</th>
+                                    <th>Expiry Date</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {alerts.map((alert) => (
+                                    <tr
+                                        key={
+                                            alert.inventory_id
+                                        }
+                                    >
+                                        <td>
+                                            <span
+                                                className={
+                                                    getAlertClass(
+                                                        alert.alert_type
+                                                    )
+                                                }
+                                            >
+                                                {
+                                                    alert.alert_type
+                                                }
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            <strong>
+                                                {
+                                                    alert.product_name
+                                                }
+                                            </strong>
+                                            <br />
+                                            {
+                                                alert.brand ||
+                                                "N/A"
+                                            }
+                                        </td>
+
+                                        <td className="product-barcode">
+                                            {
+                                                alert.barcode
+                                            }
+                                        </td>
+
+                                        <td>
+                                            {
+                                                alert.batch_number
+                                            }
+                                        </td>
+
+                                        <td>
+                                            {alert.quantity}
+                                        </td>
+
+                                        <td>
+                                            {
+                                                alert.reorder_level
+                                            }
+                                        </td>
+
+                                        <td>
+                                            {alert.expiry_date
+                                                ? new Date(
+                                                    alert.expiry_date
+                                                ).toLocaleDateString()
+                                                : "N/A"}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
+
+            <section className="inventory-section dashboard-section">
+                <div className="products-list-header">
+                    <div>
+                        <h2>
                             Inventory List
                         </h2>
 
@@ -549,134 +730,106 @@ function Inventory() {
                         <table className="inventory-table">
                             <thead>
                                 <tr>
-                                    <th>
-                                        Product
-                                    </th>
-
-                                    <th>
-                                        Barcode
-                                    </th>
-
-                                    <th>
-                                        Batch
-                                    </th>
-
-                                    <th>
-                                        Quantity
-                                    </th>
-
-                                    <th>
-                                        Reorder Level
-                                    </th>
-
-                                    <th>
-                                        Acquisition Cost
-                                    </th>
-
-                                    <th>
-                                        Expiry Date
-                                    </th>
-
-                                    <th>
-                                        Received Date
-                                    </th>
-
-                                    <th>
-                                        Status
-                                    </th>
+                                    <th>Product</th>
+                                    <th>Barcode</th>
+                                    <th>Batch</th>
+                                    <th>Quantity</th>
+                                    <th>Reorder Level</th>
+                                    <th>Acquisition Cost</th>
+                                    <th>Expiry Date</th>
+                                    <th>Received Date</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
 
                             <tbody>
-                                {inventory.map(
-                                    (item) => {
-                                        const status =
-                                            getInventoryStatus(
-                                                item
-                                            );
-
-                                        return (
-                                            <tr
-                                                key={
-                                                    item.inventory_id
-                                                }
-                                            >
-                                                <td>
-                                                    <strong>
-                                                        {
-                                                            item.product_name
-                                                        }
-                                                    </strong>
-
-                                                    <br />
-
-                                                    {item.brand ||
-                                                        "N/A"}
-                                                </td>
-
-                                                <td className="product-barcode">
-                                                    {
-                                                        item.barcode
-                                                    }
-                                                </td>
-
-                                                <td>
-                                                    {item.batch_number ||
-                                                        "N/A"}
-                                                </td>
-
-                                                <td>
-                                                    {
-                                                        item.quantity
-                                                    }
-                                                </td>
-
-                                                <td>
-                                                    {
-                                                        item.reorder_level
-                                                    }
-                                                </td>
-
-                                                <td>
-                                                    ₱
-                                                    {Number(
-                                                        item.acquisition_cost
-                                                    ).toFixed(
-                                                        2
-                                                    )}
-                                                </td>
-
-                                                <td>
-                                                    {item.expiry_date
-                                                        ? new Date(
-                                                            item.expiry_date
-                                                        ).toLocaleDateString()
-                                                        : "N/A"}
-                                                </td>
-
-                                                <td>
-                                                    {item.received_date
-                                                        ? new Date(
-                                                            item.received_date
-                                                        ).toLocaleDateString()
-                                                        : "N/A"}
-                                                </td>
-
-                                                <td>
-                                                    <span
-                                                        className={
-                                                            status.className
-                                                        }
-                                                    >
-                                                        {
-                                                            status.label
-                                                        }
-                                                    </span>
-                                                </td>
-                                            </tr>
+                                {inventory.map((item) => {
+                                    const status =
+                                        getInventoryStatus(
+                                            item
                                         );
-                                    }
-                                )}
+
+                                    return (
+                                        <tr
+                                            key={
+                                                item.inventory_id
+                                            }
+                                        >
+                                            <td>
+                                                <strong>
+                                                    {
+                                                        item.product_name
+                                                    }
+                                                </strong>
+                                                <br />
+                                                {
+                                                    item.brand ||
+                                                    "N/A"
+                                                }
+                                            </td>
+
+                                            <td className="product-barcode">
+                                                {
+                                                    item.barcode
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    item.batch_number ||
+                                                    "N/A"
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    item.quantity
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    item.reorder_level
+                                                }
+                                            </td>
+
+                                            <td>
+                                                ₱
+                                                {Number(
+                                                    item.acquisition_cost
+                                                ).toFixed(2)}
+                                            </td>
+
+                                            <td>
+                                                {item.expiry_date
+                                                    ? new Date(
+                                                        item.expiry_date
+                                                    ).toLocaleDateString()
+                                                    : "N/A"}
+                                            </td>
+
+                                            <td>
+                                                {item.received_date
+                                                    ? new Date(
+                                                        item.received_date
+                                                    ).toLocaleDateString()
+                                                    : "N/A"}
+                                            </td>
+
+                                            <td>
+                                                <span
+                                                    className={
+                                                        status.className
+                                                    }
+                                                >
+                                                    {
+                                                        status.label
+                                                    }
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -697,7 +850,9 @@ function Inventory() {
 
                     <button
                         onClick={loadMovements}
-                        disabled={movementsLoading}
+                        disabled={
+                            movementsLoading
+                        }
                     >
                         {movementsLoading
                             ? "Loading..."
@@ -718,33 +873,13 @@ function Inventory() {
                         <table className="inventory-table">
                             <thead>
                                 <tr>
-                                    <th>
-                                        Movement
-                                    </th>
-
-                                    <th>
-                                        Product
-                                    </th>
-
-                                    <th>
-                                        Batch
-                                    </th>
-
-                                    <th>
-                                        Quantity
-                                    </th>
-
-                                    <th>
-                                        Reference
-                                    </th>
-
-                                    <th>
-                                        User
-                                    </th>
-
-                                    <th>
-                                        Date
-                                    </th>
+                                    <th>Movement</th>
+                                    <th>Product</th>
+                                    <th>Batch</th>
+                                    <th>Quantity</th>
+                                    <th>Reference</th>
+                                    <th>User</th>
+                                    <th>Date</th>
                                 </tr>
                             </thead>
 
@@ -776,7 +911,6 @@ function Inventory() {
                                                         movement.product_name
                                                     }
                                                 </strong>
-
                                                 <br />
 
                                                 <span className="product-barcode">

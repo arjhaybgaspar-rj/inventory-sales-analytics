@@ -54,11 +54,109 @@ def get_inventory():
         }), 200
 
     except Exception as e:
-        print("Get inventory error:", e)
+        print("Get inventory error:", repr(e))
 
         return jsonify({
             "success": False,
             "message": "Unable to retrieve inventory."
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if connection:
+            connection.close()
+
+
+@inventory_bp.route("/alerts", methods=["GET"])
+@login_required(["admin", "owner", "manager"])
+def get_inventory_alerts():
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        query = """
+            SELECT
+                i.inventory_id,
+                i.batch_id,
+                i.quantity,
+                i.reorder_level,
+                b.batch_number,
+                b.expiry_date,
+                b.status AS batch_status,
+                p.product_id,
+                p.product_name,
+                p.barcode,
+                p.brand
+            FROM inventory i
+            INNER JOIN batches b
+                ON i.batch_id = b.batch_id
+            INNER JOIN products p
+                ON b.product_id = p.product_id
+            WHERE
+                i.quantity = 0
+                OR (
+                    i.quantity > 0
+                    AND i.quantity <= i.reorder_level
+                )
+                OR (
+                    b.expiry_date IS NOT NULL
+                    AND b.expiry_date < CURDATE()
+                )
+                OR (
+                    b.expiry_date IS NOT NULL
+                    AND b.expiry_date >= CURDATE()
+                    AND b.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+                )
+            ORDER BY
+                i.quantity ASC,
+                b.expiry_date IS NULL,
+                b.expiry_date ASC,
+                p.product_name ASC
+        """
+
+        cursor.execute(query)
+        alerts = cursor.fetchall()
+
+        from datetime import date, timedelta
+
+        today = date.today()
+        thirty_days_from_now = today + timedelta(days=30)
+
+        for alert in alerts:
+            expiry_date = alert["expiry_date"]
+            quantity = int(alert["quantity"])
+            reorder_level = int(alert["reorder_level"])
+
+            if quantity == 0:
+                alert["alert_type"] = "Out of Stock"
+            elif expiry_date is not None and expiry_date < today:
+                alert["alert_type"] = "Expired"
+            elif (
+                expiry_date is not None
+                and today <= expiry_date <= thirty_days_from_now
+            ):
+                alert["alert_type"] = "Expiring Soon"
+            elif quantity <= reorder_level:
+                alert["alert_type"] = "Low Stock"
+            else:
+                alert["alert_type"] = "Available"
+
+        return jsonify({
+            "success": True,
+            "alerts": alerts
+        }), 200
+
+    except Exception as e:
+        print("Get inventory alerts error:", repr(e))
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to retrieve inventory alerts."
         }), 500
 
     finally:
@@ -150,7 +248,16 @@ def stock_in():
                 received_date,
                 status
             )
-            VALUES (%s, %s, %s, %s, %s, %s, 'available')
+            VALUES
+            (
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                'available'
+            )
             """,
             (
                 product_id,
@@ -172,7 +279,12 @@ def stock_in():
                 quantity,
                 reorder_level
             )
-            VALUES (%s, %s, %s)
+            VALUES
+            (
+                %s,
+                %s,
+                %s
+            )
             """,
             (
                 batch_id,
@@ -226,7 +338,7 @@ def stock_in():
         if connection:
             connection.rollback()
 
-        print("Stock-in error:", e)
+        print("Stock-in error:", repr(e))
 
         return jsonify({
             "success": False,
@@ -286,7 +398,7 @@ def get_inventory_movements():
         }), 200
 
     except Exception as e:
-        print("Get inventory movements error:", e)
+        print("Get inventory movements error:", repr(e))
 
         return jsonify({
             "success": False,

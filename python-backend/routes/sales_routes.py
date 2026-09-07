@@ -58,6 +58,12 @@ def get_sales():
 def create_sale():
     data = request.get_json()
 
+    if not data:
+        return jsonify({
+            "success": False,
+            "message": "Request data is required."
+        }), 400
+
     user_id = session.get("user_id")
     payment_method = data.get("payment_method")
     items = data.get("items")
@@ -199,8 +205,9 @@ def create_sale():
                 SELECT
                     i.inventory_id,
                     i.batch_id,
-                    i.quantity,
+                    i.quantity AS inventory_quantity,
                     b.batch_number,
+                    b.quantity AS batch_quantity,
                     b.expiry_date,
                     b.status
                 FROM inventory i
@@ -208,7 +215,12 @@ def create_sale():
                     ON i.batch_id = b.batch_id
                 WHERE b.product_id = %s
                 AND i.quantity > 0
+                AND b.quantity > 0
                 AND b.status = 'available'
+                AND (
+                    b.expiry_date IS NULL
+                    OR b.expiry_date >= CURDATE()
+                )
                 ORDER BY
                     b.expiry_date IS NULL,
                     b.expiry_date ASC,
@@ -221,7 +233,10 @@ def create_sale():
             batches = cursor.fetchall()
 
             available_quantity = sum(
-                int(batch["quantity"])
+                min(
+                    int(batch["inventory_quantity"]),
+                    int(batch["batch_quantity"])
+                )
                 for batch in batches
             )
 
@@ -244,15 +259,32 @@ def create_sale():
                 if remaining_quantity <= 0:
                     break
 
-                batch_quantity = int(batch["quantity"])
+                inventory_quantity = int(
+                    batch["inventory_quantity"]
+                )
 
-                quantity_to_sell = min(
-                    remaining_quantity,
+                batch_quantity = int(
+                    batch["batch_quantity"]
+                )
+
+                available_batch_quantity = min(
+                    inventory_quantity,
                     batch_quantity
                 )
 
-                unit_price = float(product["selling_price"])
-                subtotal = quantity_to_sell * unit_price
+                quantity_to_sell = min(
+                    remaining_quantity,
+                    available_batch_quantity
+                )
+
+                unit_price = float(
+                    product["selling_price"]
+                )
+
+                subtotal = (
+                    quantity_to_sell *
+                    unit_price
+                )
 
                 cursor.execute(
                     """
@@ -274,6 +306,28 @@ def create_sale():
                     return jsonify({
                         "success": False,
                         "message": "Unable to update inventory stock."
+                    }), 400
+
+                cursor.execute(
+                    """
+                    UPDATE batches
+                    SET quantity = quantity - %s
+                    WHERE batch_id = %s
+                    AND quantity >= %s
+                    """,
+                    (
+                        quantity_to_sell,
+                        batch["batch_id"],
+                        quantity_to_sell
+                    )
+                )
+
+                if cursor.rowcount == 0:
+                    connection.rollback()
+
+                    return jsonify({
+                        "success": False,
+                        "message": "Unable to update batch stock."
                     }), 400
 
                 cursor.execute(
@@ -346,6 +400,17 @@ def create_sale():
 
                 total_amount += subtotal
                 remaining_quantity -= quantity_to_sell
+
+            if remaining_quantity > 0:
+                connection.rollback()
+
+                return jsonify({
+                    "success": False,
+                    "message": (
+                        "Unable to complete the sale for "
+                        + product["product_name"]
+                    )
+                }), 400
 
         cursor.execute(
             """
