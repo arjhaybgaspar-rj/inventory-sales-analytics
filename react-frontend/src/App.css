@@ -1169,3 +1169,24 @@ button:disabled {
         height: 32%;
     }
 }
+.auth-switch {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-top: 18px;
+    font-size: 13px;
+}
+
+.auth-switch button {
+    border: none;
+    background: none;
+    padding: 0;
+    color: #2563eb;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.auth-switch button:hover {
+    text-decoration: underline;
+}
