@@ -1,0 +1,157 @@
+:root {
+    /* =========================
+       PRIMARY BRAND COLORS
+       ========================= */
+
+    --navy-950: #04101f;
+    --navy-900: #071a2f;
+    --navy-850: #0a2039;
+    --navy-800: #0d2948;
+    --navy-700: #163a61;
+
+    --blue-700: #1d4ed8;
+    --blue-600: #2563eb;
+    --blue-500: #3b82f6;
+    --blue-400: #60a5fa;
+    --blue-300: #93c5fd;
+
+    --cyan-500: #06b6d4;
+    --cyan-400: #22d3ee;
+
+    /* =========================
+       NEUTRAL COLORS
+       ========================= */
+
+    --white: #ffffff;
+
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+
+    /* =========================
+       SEMANTIC COLORS
+       ========================= */
+
+    --success-50: #ecfdf5;
+    --success-100: #d1fae5;
+    --success-500: #10b981;
+    --success-600: #059669;
+    --success-700: #047857;
+
+    --warning-50: #fffbeb;
+    --warning-100: #fef3c7;
+    --warning-500: #f59e0b;
+    --warning-600: #d97706;
+    --warning-700: #b45309;
+
+    --danger-50: #fef2f2;
+    --danger-100: #fee2e2;
+    --danger-500: #ef4444;
+    --danger-600: #dc2626;
+    --danger-700: #b91c1c;
+
+    --purple-50: #f5f3ff;
+    --purple-500: #8b5cf6;
+    --purple-600: #7c3aed;
+
+    /* =========================
+       APP COLORS
+       ========================= */
+
+    --background:
+        #edf4fb;
+
+    --surface:
+        rgba(255, 255, 255, 0.76);
+
+    --surface-soft:
+        rgba(255, 255, 255, 0.58);
+
+    --surface-strong:
+        rgba(255, 255, 255, 0.94);
+
+    --surface-dark:
+        rgba(7, 26, 47, 0.94);
+
+    --text-primary:
+        #0f172a;
+
+    --text-secondary:
+        #64748b;
+
+    --text-muted:
+        #94a3b8;
+
+    --border:
+        rgba(148, 163, 184, 0.24);
+
+    --border-strong:
+        rgba(148, 163, 184, 0.38);
+
+    --glass-border:
+        rgba(255, 255, 255, 0.72);
+
+    /* =========================
+       RADIUS
+       ========================= */
+
+    --radius-xs: 6px;
+    --radius-sm: 9px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 26px;
+    --radius-full: 999px;
+
+    /* =========================
+       SHADOWS
+       ========================= */
+
+    --shadow-xs:
+        0 1px 2px
+        rgba(15, 23, 42, 0.04);
+
+    --shadow-sm:
+        0 4px 14px
+        rgba(15, 42, 76, 0.06);
+
+    --shadow-md:
+        0 10px 30px
+        rgba(15, 42, 76, 0.09);
+
+    --shadow-lg:
+        0 18px 45px
+        rgba(15, 42, 76, 0.12);
+
+    --shadow-blue:
+        0 12px 30px
+        rgba(37, 99, 235, 0.22);
+
+    /* =========================
+       TRANSITIONS
+       ========================= */
+
+    --transition-fast:
+        150ms ease;
+
+    --transition:
+        200ms ease;
+
+    --transition-slow:
+        300ms ease;
+
+    /* =========================
+       LAYOUT
+       ========================= */
+
+    --sidebar-width: 260px;
+
+    --content-max-width: 1600px;
+}

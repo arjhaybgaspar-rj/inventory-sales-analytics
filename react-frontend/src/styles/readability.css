@@ -1,0 +1,567 @@
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+
+.modern-dashboard-heading p {
+    font-size: 14px;
+}
+
+
+.modern-dashboard-date {
+    font-size: 12px;
+}
+
+
+.modern-dashboard-refresh {
+    font-size: 12px;
+}
+
+
+.dashboard-welcome-content > div:last-child > span {
+    font-size: 11px;
+}
+
+
+.dashboard-welcome-content h2 {
+    font-size: 21px;
+}
+
+
+.dashboard-welcome-content p {
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+.dashboard-welcome-role span {
+    font-size: 10px;
+}
+
+
+.dashboard-welcome-role strong {
+    font-size: 12px;
+}
+
+
+.modern-kpi-label {
+    font-size: 12px;
+}
+
+
+.modern-kpi-card p {
+    font-size: 11px;
+
+    line-height: 1.45;
+}
+
+
+.dashboard-small-kpi span {
+    font-size: 11px;
+}
+
+
+.dashboard-small-kpi strong {
+    font-size: 21px;
+}
+
+
+.dashboard-panel-eyebrow {
+    font-size: 10px;
+}
+
+
+.dashboard-panel-header h2 {
+    font-size: 20px;
+}
+
+
+.dashboard-panel-header p {
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+.dashboard-text-button {
+    font-size: 11px;
+}
+
+
+.dashboard-stock-ring-inner span {
+    font-size: 11px;
+}
+
+
+.dashboard-stock-legend-row {
+    font-size: 12px;
+}
+
+
+.dashboard-stock-legend-row strong {
+    font-size: 12px;
+}
+
+
+.dashboard-stock-progress-header {
+    font-size: 11px;
+}
+
+
+.dashboard-stock-progress-header strong {
+    font-size: 11px;
+}
+
+
+.dashboard-snapshot-copy span {
+    font-size: 10px;
+}
+
+
+.dashboard-snapshot-copy strong {
+    font-size: 15px;
+}
+
+
+.dashboard-table {
+    font-size: 12px;
+}
+
+
+.dashboard-table th {
+    padding:
+        13px 14px;
+
+    font-size: 10px;
+}
+
+
+.dashboard-table td {
+    padding:
+        13px 14px;
+
+    font-size: 12px;
+
+    line-height: 1.45;
+}
+
+
+.dashboard-product-cell strong {
+    font-size: 12px;
+}
+
+
+.dashboard-product-cell span {
+    font-size: 10px;
+}
+
+
+.dashboard-quantity {
+    font-size: 12px;
+}
+
+
+.dashboard-status {
+    padding:
+        6px 9px;
+
+    font-size: 10px;
+}
+
+
+.dashboard-sale-id {
+    font-size: 11px;
+}
+
+
+.dashboard-payment-badge {
+    padding:
+        6px 9px;
+
+    font-size: 10px;
+}
+
+
+.dashboard-sale-total {
+    font-size: 12px;
+}
+
+
+.dashboard-panel-loading {
+    font-size: 12px;
+}
+
+
+.dashboard-empty strong {
+    font-size: 13px;
+}
+
+
+.dashboard-empty span {
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   INVENTORY
+   ============================================================ */
+
+.inventory-modern-header p {
+    font-size: 14px;
+}
+
+
+.inventory-header-refresh {
+    font-size: 12px;
+}
+
+
+.inventory-summary-card span {
+    font-size: 11px;
+}
+
+
+.inventory-summary-card strong {
+    font-size: 22px;
+}
+
+
+.inventory-summary-money {
+    font-size: 18px !important;
+}
+
+
+.inventory-section-title
+> div:last-child
+> span {
+    font-size: 10px;
+}
+
+
+.inventory-section-title h2 {
+    font-size: 20px;
+}
+
+
+.inventory-section-title p {
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+.inventory-form-group label {
+    font-size: 12px;
+}
+
+
+.inventory-form-group
+label span {
+    font-size: 9px;
+}
+
+
+.inventory-form-group input,
+.inventory-form-group select {
+    height: 45px;
+
+    font-size: 13px;
+}
+
+
+.inventory-money-input
+> span {
+    font-size: 13px;
+}
+
+
+.inventory-selected-product {
+    font-size: 11px;
+}
+
+
+.inventory-selected-product
+div:last-child span {
+    font-size: 9px;
+}
+
+
+.inventory-selected-product strong {
+    font-size: 12px;
+}
+
+
+.inventory-selected-product small {
+    font-size: 10px;
+}
+
+
+.inventory-stockin-button {
+    min-height: 44px;
+
+    font-size: 13px;
+}
+
+
+.inventory-panel-eyebrow {
+    font-size: 10px;
+}
+
+
+.inventory-panel-header h2 {
+    font-size: 20px;
+}
+
+
+.inventory-panel-header p {
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+.inventory-panel-refresh {
+    min-height: 39px;
+
+    font-size: 11px;
+}
+
+
+.inventory-alert-filter {
+    min-height: 45px;
+
+    padding:
+        11px 12px;
+}
+
+
+.inventory-alert-filter span {
+    font-size: 11px;
+}
+
+
+.inventory-alert-filter strong {
+    font-size: 13px;
+}
+
+
+.inventory-search-box {
+    width: 250px;
+}
+
+
+.inventory-search-box input {
+    height: 39px;
+
+    font-size: 12px;
+}
+
+
+.inventory-modern-table {
+    font-size: 12px;
+}
+
+
+.inventory-modern-table th {
+    padding:
+        13px 14px;
+
+    font-size: 10px;
+}
+
+
+.inventory-modern-table td {
+    padding:
+        13px 14px;
+
+    font-size: 12px;
+
+    line-height: 1.45;
+}
+
+
+.inventory-product-cell strong,
+.inventory-product-text strong {
+    font-size: 12px;
+}
+
+
+.inventory-product-cell span,
+.inventory-product-text span {
+    font-size: 10px;
+}
+
+
+.inventory-barcode {
+    font-size: 11px;
+}
+
+
+.inventory-quantity-number {
+    font-size: 12px;
+}
+
+
+.inventory-cost-value {
+    font-size: 12px;
+}
+
+
+.inventory-reference {
+    font-size: 11px;
+}
+
+
+.inventory-status {
+    padding:
+        6px 9px;
+
+    font-size: 10px;
+}
+
+
+.inventory-movement {
+    padding:
+        6px 9px;
+
+    font-size: 10px;
+}
+
+
+.inventory-loading-state {
+    font-size: 12px;
+}
+
+
+.inventory-empty-state strong {
+    font-size: 13px;
+}
+
+
+.inventory-empty-state span {
+    font-size: 11px;
+
+    line-height: 1.55;
+}
+
+
+/* ============================================================
+   SIDEBAR READABILITY
+   ============================================================ */
+
+.modern-sidebar
+.sidebar-brand-copy p {
+    font-size: 11px;
+}
+
+
+.modern-sidebar
+.sidebar-section-label {
+    font-size: 10px;
+}
+
+
+.modern-sidebar
+.sidebar-nav-label {
+    font-size: 14px;
+}
+
+
+.modern-sidebar
+.sidebar-system-card strong {
+    font-size: 11px;
+}
+
+
+.modern-sidebar
+.sidebar-system-card
+span:not(.sidebar-online-dot) {
+    font-size: 9px;
+}
+
+
+.modern-sidebar
+.sidebar-user-info p {
+    font-size: 12px;
+}
+
+
+.modern-sidebar
+.sidebar-user-info span {
+    font-size: 10px;
+}
+
+
+.modern-sidebar
+.sidebar-logout-button {
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   GENERAL INTERACTION POLISH
+   ============================================================ */
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
+
+button {
+    cursor: pointer;
+}
+
+
+button:disabled {
+    cursor: not-allowed;
+}
+
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline:
+        3px solid
+        rgba(
+            59,
+            130,
+            246,
+            0.22
+        );
+
+    outline-offset: 2px;
+}
+
+
+/* ============================================================
+   TABLE TEXT SELECTION
+   ============================================================ */
+
+table {
+    font-variant-numeric:
+        tabular-nums;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 850px) {
+    .inventory-search-box {
+        width: auto;
+    }
+}
+
+
+@media (max-width: 620px) {
+    .modern-dashboard-heading p,
+    .inventory-modern-header p {
+        font-size: 13px;
+    }
+}
