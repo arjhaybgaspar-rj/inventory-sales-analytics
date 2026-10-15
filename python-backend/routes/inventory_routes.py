@@ -1,6 +1,8 @@
+
 from flask import Blueprint, request, jsonify, session
 from config.database import get_db_connection
 from utils.auth import login_required
+from datetime import date, timedelta
 
 inventory_bp = Blueprint("inventory", __name__, url_prefix="/api/inventory")
 
@@ -35,10 +37,8 @@ def get_inventory():
                 p.selling_price,
                 p.image_url
             FROM inventory i
-            INNER JOIN batches b
-                ON i.batch_id = b.batch_id
-            INNER JOIN products p
-                ON b.product_id = p.product_id
+            INNER JOIN batches b ON i.batch_id = b.batch_id
+            INNER JOIN products p ON b.product_id = p.product_id
             ORDER BY
                 b.expiry_date IS NULL,
                 b.expiry_date ASC,
@@ -55,7 +55,6 @@ def get_inventory():
 
     except Exception as e:
         print("Get inventory error:", repr(e))
-
         return jsonify({
             "success": False,
             "message": "Unable to retrieve inventory."
@@ -64,7 +63,6 @@ def get_inventory():
     finally:
         if cursor:
             cursor.close()
-
         if connection:
             connection.close()
 
@@ -93,22 +91,33 @@ def get_inventory_alerts():
                 p.barcode,
                 p.brand
             FROM inventory i
-            INNER JOIN batches b
-                ON i.batch_id = b.batch_id
-            INNER JOIN products p
-                ON b.product_id = p.product_id
+            INNER JOIN batches b ON i.batch_id = b.batch_id
+            INNER JOIN products p ON b.product_id = p.product_id
             WHERE
-                i.quantity = 0
+                (
+                    i.quantity = 0
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM inventory i2
+                        INNER JOIN batches b2
+                            ON i2.batch_id = b2.batch_id
+                        WHERE b2.product_id = b.product_id
+                          AND b2.batch_number = b.batch_number
+                          AND i2.quantity > 0
+                    )
+                )
                 OR (
                     i.quantity > 0
                     AND i.quantity <= i.reorder_level
                 )
                 OR (
-                    b.expiry_date IS NOT NULL
+                    i.quantity > 0
+                    AND b.expiry_date IS NOT NULL
                     AND b.expiry_date < CURDATE()
                 )
                 OR (
-                    b.expiry_date IS NOT NULL
+                    i.quantity > 0
+                    AND b.expiry_date IS NOT NULL
                     AND b.expiry_date >= CURDATE()
                     AND b.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
                 )
@@ -121,8 +130,6 @@ def get_inventory_alerts():
 
         cursor.execute(query)
         alerts = cursor.fetchall()
-
-        from datetime import date, timedelta
 
         today = date.today()
         thirty_days_from_now = today + timedelta(days=30)
@@ -153,7 +160,6 @@ def get_inventory_alerts():
 
     except Exception as e:
         print("Get inventory alerts error:", repr(e))
-
         return jsonify({
             "success": False,
             "message": "Unable to retrieve inventory alerts."
@@ -162,7 +168,6 @@ def get_inventory_alerts():
     finally:
         if cursor:
             cursor.close()
-
         if connection:
             connection.close()
 
@@ -170,7 +175,7 @@ def get_inventory_alerts():
 @inventory_bp.route("/stock-in", methods=["POST"])
 @login_required(["admin", "owner", "manager"])
 def stock_in():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
 
     product_id = data.get("product_id")
     batch_number = data.get("batch_number")
@@ -181,28 +186,41 @@ def stock_in():
     reorder_level = data.get("reorder_level", 10)
     created_by = session.get("user_id")
 
-    if not product_id:
-        return jsonify({
-            "success": False,
-            "message": "Product ID is required."
-        }), 400
+    try:
+        if not product_id:
+            return jsonify({
+                "success": False,
+                "message": "Product ID is required."
+            }), 400
 
-    if not quantity or int(quantity) <= 0:
-        return jsonify({
-            "success": False,
-            "message": "Quantity must be greater than zero."
-        }), 400
+        if quantity is None or int(quantity) <= 0:
+            return jsonify({
+                "success": False,
+                "message": "Quantity must be greater than zero."
+            }), 400
 
-    if acquisition_cost is None or float(acquisition_cost) < 0:
-        return jsonify({
-            "success": False,
-            "message": "Acquisition cost is required."
-        }), 400
+        if acquisition_cost is None or float(acquisition_cost) < 0:
+            return jsonify({
+                "success": False,
+                "message": "Acquisition cost is required."
+            }), 400
 
-    if not received_date:
+        if not received_date:
+            return jsonify({
+                "success": False,
+                "message": "Received date is required."
+            }), 400
+
+        if int(reorder_level) < 0:
+            return jsonify({
+                "success": False,
+                "message": "Reorder level cannot be negative."
+            }), 400
+
+    except (TypeError, ValueError):
         return jsonify({
             "success": False,
-            "message": "Received date is required."
+            "message": "Quantity, cost, and reorder level must be valid numbers."
         }), 400
 
     connection = None
@@ -216,11 +234,10 @@ def stock_in():
 
         cursor.execute(
             """
-            SELECT
-                product_id
+            SELECT product_id
             FROM products
             WHERE product_id = %s
-            AND status = 'active'
+              AND status = 'active'
             LIMIT 1
             """,
             (product_id,)
@@ -230,7 +247,6 @@ def stock_in():
 
         if not product:
             connection.rollback()
-
             return jsonify({
                 "success": False,
                 "message": "Product not found."
@@ -238,8 +254,7 @@ def stock_in():
 
         cursor.execute(
             """
-            INSERT INTO batches
-            (
+            INSERT INTO batches (
                 product_id,
                 batch_number,
                 quantity,
@@ -248,23 +263,14 @@ def stock_in():
                 received_date,
                 status
             )
-            VALUES
-            (
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                %s,
-                'available'
-            )
+            VALUES (%s, %s, %s, %s, %s, %s, 'available')
             """,
             (
                 product_id,
                 batch_number,
-                quantity,
-                acquisition_cost,
-                expiry_date,
+                int(quantity),
+                float(acquisition_cost),
+                expiry_date or None,
                 received_date
             )
         )
@@ -273,23 +279,17 @@ def stock_in():
 
         cursor.execute(
             """
-            INSERT INTO inventory
-            (
+            INSERT INTO inventory (
                 batch_id,
                 quantity,
                 reorder_level
             )
-            VALUES
-            (
-                %s,
-                %s,
-                %s
-            )
+            VALUES (%s, %s, %s)
             """,
             (
                 batch_id,
-                quantity,
-                reorder_level
+                int(quantity),
+                int(reorder_level)
             )
         )
 
@@ -297,8 +297,7 @@ def stock_in():
 
         cursor.execute(
             """
-            INSERT INTO inventory_movements
-            (
+            INSERT INTO inventory_movements (
                 batch_id,
                 movement_type,
                 quantity,
@@ -306,19 +305,11 @@ def stock_in():
                 notes,
                 created_by
             )
-            VALUES
-            (
-                %s,
-                'IN',
-                %s,
-                %s,
-                %s,
-                %s
-            )
+            VALUES (%s, 'IN', %s, %s, %s, %s)
             """,
             (
                 batch_id,
-                quantity,
+                int(quantity),
                 inventory_id,
                 "Stock-in transaction",
                 created_by
@@ -348,7 +339,6 @@ def stock_in():
     finally:
         if cursor:
             cursor.close()
-
         if connection:
             connection.close()
 
@@ -380,12 +370,9 @@ def get_inventory_movements():
                 p.barcode,
                 u.full_name AS created_by_name
             FROM inventory_movements im
-            INNER JOIN batches b
-                ON im.batch_id = b.batch_id
-            INNER JOIN products p
-                ON b.product_id = p.product_id
-            LEFT JOIN users u
-                ON im.created_by = u.user_id
+            INNER JOIN batches b ON im.batch_id = b.batch_id
+            INNER JOIN products p ON b.product_id = p.product_id
+            LEFT JOIN users u ON im.created_by = u.user_id
             ORDER BY im.movement_id DESC
         """
 
@@ -399,7 +386,6 @@ def get_inventory_movements():
 
     except Exception as e:
         print("Get inventory movements error:", repr(e))
-
         return jsonify({
             "success": False,
             "message": "Unable to retrieve inventory movements."
@@ -408,6 +394,5 @@ def get_inventory_movements():
     finally:
         if cursor:
             cursor.close()
-
         if connection:
             connection.close()
