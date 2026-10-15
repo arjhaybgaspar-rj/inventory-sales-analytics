@@ -690,9 +690,13 @@ function Products() {
                     [
                         BarcodeFormat.EAN_13,
                         BarcodeFormat.EAN_8,
-                        BarcodeFormat.UPC_A
+                        BarcodeFormat.UPC_A,
+                        BarcodeFormat.UPC_E,
+                        BarcodeFormat.ITF,
+                        BarcodeFormat.CODE_128,
+                        BarcodeFormat.CODE_39
                     ]
-                );
+);
 
                 hints.set(
                     DecodeHintType.TRY_HARDER,
