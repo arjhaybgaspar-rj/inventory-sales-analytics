@@ -2349,3 +2349,36 @@ button:disabled {
         height: 120px;
     }
 }
+
+.products-summary-card {
+    box-shadow: 0 8px 5px -2px #102b4e,
+        3px 10px 7px -3px rgba(16, 43, 78, 0.45);
+
+    transition: box-shadow 0.25s ease,
+        transform 0.25s ease;
+}
+
+.products-summary-card:hover {
+    transform: translateY(-2px);
+
+    box-shadow: 0 10px 5px -2px #102b4e,
+        4px 12px 9px -3px rgba(16, 43, 78, 0.5);
+}
+
+
+.products-summary-card {
+    box-shadow:
+        5px 0 5px rgba(0, 0, 0, 0.20),
+        0 8px 5px rgba(0, 0, 0, 0.30);
+
+    transition: box-shadow 0.25s ease,
+        transform 0.25s ease;
+}
+
+.products-summary-card:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        5px 0 6px rgba(0, 0, 0, 0.25),
+        0 10px 7px rgba(0, 0, 0, 0.35);
+}

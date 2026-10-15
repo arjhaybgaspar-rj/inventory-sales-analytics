@@ -169,17 +169,7 @@ function Login() {
                             Clearer decisions.
                         </h2>
 
-                        <p className="login-showcase-description">
-                            A centralized system
-                            for product
-                            registration, barcode
-                            scanning, inventory
-                            monitoring, point of
-                            sale transactions,
-                            and business
-                            analytics.
-                        </p>
-
+            
                         <div className="login-feature-grid">
                             <div className="login-feature">
                                 <span className="login-feature-icon">
