@@ -22,7 +22,6 @@ const ROUTES = {
 
         roles: [
             "admin",
-            "owner",
             "manager",
             "cashier"
         ]
