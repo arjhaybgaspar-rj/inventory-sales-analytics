@@ -332,7 +332,7 @@ function Products() {
                 ) {
                     setError(
                         data.message ||
-                            "Unable to load products."
+                        "Unable to load products."
                     );
 
                     return;
@@ -501,7 +501,7 @@ function Products() {
                 ) {
                     setError(
                         data.message ||
-                            "Barcode lookup failed."
+                        "Barcode lookup failed."
                     );
 
                     return;
@@ -515,7 +515,7 @@ function Products() {
 
                 setProduct(
                     data.product ||
-                        null
+                    null
                 );
 
 
@@ -537,13 +537,13 @@ function Products() {
                         data.product
                             ?.selling_price !==
                             null &&
-                        data.product
-                            ?.selling_price !==
+                            data.product
+                                ?.selling_price !==
                             undefined
                             ? String(
-                                  data.product
-                                      .selling_price
-                              )
+                                data.product
+                                    .selling_price
+                            )
                             : ""
                     );
 
@@ -885,18 +885,18 @@ function Products() {
     const isUnknownProduct =
         Boolean(
             product &&
-                lookupMeta &&
-                !lookupMeta.exists &&
-                !lookupMeta.foundInApi
+            lookupMeta &&
+            !lookupMeta.exists &&
+            !lookupMeta.foundInApi
         );
 
 
     const canAddProduct =
         Boolean(
             product &&
-                lookupMeta &&
-                !lookupMeta.exists &&
-                lookupMeta.foundInApi
+            lookupMeta &&
+            !lookupMeta.exists &&
+            lookupMeta.foundInApi
         );
 
 
@@ -913,7 +913,7 @@ function Products() {
             if (
                 !String(
                     product.product_name ||
-                        ""
+                    ""
                 ).trim()
             ) {
                 setError(
@@ -1016,7 +1016,7 @@ function Products() {
                 ) {
                     setError(
                         data.message ||
-                            "Unable to add product."
+                        "Unable to add product."
                     );
 
                     return;
@@ -1087,19 +1087,19 @@ function Products() {
                     const productName =
                         String(
                             item.product_name ||
-                                ""
+                            ""
                         ).toLowerCase();
 
                     const itemBarcode =
                         String(
                             item.barcode ||
-                                ""
+                            ""
                         ).toLowerCase();
 
                     const rawBrand =
                         String(
                             item.brand ||
-                                ""
+                            ""
                         ).toLowerCase();
 
                     const cleanedBrand =
@@ -1110,7 +1110,7 @@ function Products() {
                     const rawCategory =
                         String(
                             item.category ||
-                                ""
+                            ""
                         ).toLowerCase();
 
                     const cleanedCategory =
@@ -1166,7 +1166,7 @@ function Products() {
                     (item) =>
                         String(
                             item.api_source ||
-                                ""
+                            ""
                         )
                             .toLowerCase()
                             .includes(
@@ -1195,7 +1195,7 @@ function Products() {
                         sum +
                         Number(
                             item.selling_price ||
-                                0
+                            0
                         ),
                     0
                 );
@@ -1440,115 +1440,154 @@ function Products() {
                 </div>
 
 
-                <div className="products-barcode-workspace">
-                    <div className="products-barcode-input-wrapper">
+                <div
+                    className="products-barcode-workspace"
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "12px",
+                        width: "100%",
+                        marginTop: "22px",
+                    }}
+                >
+                    <div
+                        className="products-barcode-input-wrapper"
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            flex: "1 1 340px",
+                            minWidth: "min(100%, 260px)",
+                            minHeight: "52px",
+                            boxSizing: "border-box",
+                            gap: "10px",
+                            padding: "0 14px",
+                            border: "1px solid var(--border-strong, #cbd5c0)",
+                            borderRadius: "14px",
+                            background: "var(--surface-strong, #fffdf7)",
+                            boxShadow: "var(--shadow-xs, 0 1px 2px rgba(47, 75, 51, 0.04))",
+                        }}
+                    >
                         <Barcode
+                            className="products-barcode-input-icon"
                             size={20}
                             strokeWidth={1.8}
+                            aria-hidden="true"
                         />
 
                         <input
+                            className="products-barcode-input-field"
                             type="text"
-                            value={
-                                barcode
-                            }
-                            onChange={(
-                                event
-                            ) => {
-                                const value =
-                                    event.target
-                                        .value;
+                            value={barcode}
+                            onChange={(event) => {
+                                const value = event.target.value;
 
-                                if (
-                                    /^\d*$/.test(
-                                        value
-                                    )
-                                ) {
-                                    setBarcode(
-                                        value
-                                    );
+                                if (/^\d*$/.test(value)) {
+                                    setBarcode(value);
                                 }
                             }}
-                            onKeyDown={(
-                                event
-                            ) => {
-                                if (
-                                    event.key ===
-                                    "Enter"
-                                ) {
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter") {
                                     lookupBarcode();
                                 }
                             }}
                             placeholder="Enter product barcode"
                             inputMode="numeric"
-                            disabled={
-                                loading
-                            }
+                            autoComplete="off"
+                            aria-label="Enter product barcode"
+                            disabled={loading}
+                            style={{
+                                display: "block",
+                                flex: "1 1 0%",
+                                width: "100%",
+                                minWidth: 0,
+                                height: "50px",
+                                margin: 0,
+                                padding: "0",
+                                border: "0",
+                                outline: "none",
+                                boxShadow: "none",
+                                borderRadius: 0,
+                                background: "transparent",
+                                color: "var(--text-primary, #263b2d)",
+                                font: "inherit",
+                                fontSize: "15px",
+                            }}
                         />
 
                         {barcode && (
                             <button
                                 type="button"
                                 className="products-barcode-clear"
-                                onClick={
-                                    clearLookup
-                                }
+                                onClick={clearLookup}
                                 aria-label="Clear barcode"
+                                disabled={loading}
+                                style={{
+                                    display: "inline-flex",
+                                    flex: "0 0 auto",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    width: "30px",
+                                    height: "30px",
+                                    padding: 0,
+                                    border: 0,
+                                    borderRadius: "8px",
+                                    background: "transparent",
+                                    color: "var(--text-secondary, #667563)",
+                                    cursor: "pointer",
+                                }}
                             >
-                                <X
-                                    size={16}
-                                    strokeWidth={2}
-                                />
+                                <X size={16} strokeWidth={2} />
                             </button>
                         )}
                     </div>
 
-
                     <button
                         type="button"
                         className="products-lookup-button"
-                        onClick={() =>
-                            lookupBarcode()
-                        }
-                        disabled={
-                            loading ||
-                            !barcode
-                        }
+                        onClick={() => lookupBarcode()}
+                        disabled={loading || !barcode}
+                        style={{
+                            display: "inline-flex",
+                            flex: "0 0 auto",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "9px",
+                            minHeight: "52px",
+                            padding: "0 20px",
+                            whiteSpace: "nowrap",
+                        }}
                     >
                         {loading ? (
                             <>
                                 <span className="products-button-spinner" />
-
                                 Looking Up...
                             </>
                         ) : (
                             <>
-                                <Search
-                                    size={18}
-                                    strokeWidth={2}
-                                />
-
+                                <Search size={18} strokeWidth={2} />
                                 Lookup
                             </>
                         )}
                     </button>
 
-
                     <button
                         type="button"
                         className="products-scan-button"
-                        onClick={
-                            startScanner
-                        }
-                        disabled={
-                            loading
-                        }
+                        onClick={startScanner}
+                        disabled={loading}
+                        style={{
+                            display: "inline-flex",
+                            flex: "0 0 auto",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "9px",
+                            minHeight: "52px",
+                            padding: "0 20px",
+                            whiteSpace: "nowrap",
+                        }}
                     >
-                        <Camera
-                            size={18}
-                            strokeWidth={2}
-                        />
-
+                        <Camera size={18} strokeWidth={2} />
                         Scan Barcode
                     </button>
                 </div>
@@ -1570,7 +1609,7 @@ function Products() {
 
 
             {scannerOpen && (
-                <div className="products-scanner-overlay">
+                <div className="products-scanner-backdrop">
                     <section
                         className="products-scanner-modal"
                         role="dialog"
@@ -1951,36 +1990,36 @@ function Products() {
 
                                 {lookupMeta
                                     ?.exists && (
-                                    <div className="products-existing-product">
-                                        <div>
-                                            <CheckCircle2
-                                                size={20}
-                                                strokeWidth={2}
-                                            />
-
+                                        <div className="products-existing-product">
                                             <div>
-                                                <span>
-                                                    Already
-                                                    Registered
-                                                </span>
+                                                <CheckCircle2
+                                                    size={20}
+                                                    strokeWidth={2}
+                                                />
 
-                                                <p>
-                                                    This
-                                                    product is
-                                                    already in
-                                                    your
-                                                    catalog.
-                                                </p>
+                                                <div>
+                                                    <span>
+                                                        Already
+                                                        Registered
+                                                    </span>
+
+                                                    <p>
+                                                        This
+                                                        product is
+                                                        already in
+                                                        your
+                                                        catalog.
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <strong>
-                                            {formatCurrency(
-                                                product.selling_price
-                                            )}
-                                        </strong>
-                                    </div>
-                                )}
+                                            <strong>
+                                                {formatCurrency(
+                                                    product.selling_price
+                                                )}
+                                            </strong>
+                                        </div>
+                                    )}
                             </div>
                         </div>
                     </section>
@@ -2056,7 +2095,7 @@ function Products() {
                         Loading product catalog...
                     </div>
                 ) : filteredProducts.length ===
-                  0 ? (
+                    0 ? (
                     <div className="products-empty-state">
                         <Package
                             size={40}
@@ -2219,7 +2258,7 @@ function Products() {
                                                 <span
                                                     className={
                                                         item.status ===
-                                                        "active"
+                                                            "active"
                                                             ? "products-status products-status-active"
                                                             : "products-status products-status-inactive"
                                                     }
