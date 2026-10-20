@@ -79,11 +79,94 @@ def get_inventory_alerts():
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        query = """
+        # Stock alerts are calculated once per product using all usable batches.
+        # Expired batches and batches not marked "available" do not contribute
+        # to usable stock. LEAST() matches the availability calculation used by sales.
+        stock_query = """
+            SELECT
+                p.product_id,
+                p.product_name,
+                p.barcode,
+                p.brand,
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN b.status = 'available'
+                                AND (b.expiry_date IS NULL OR b.expiry_date >= CURDATE())
+                            THEN GREATEST(
+                                LEAST(
+                                    COALESCE(i.quantity, 0),
+                                    COALESCE(b.quantity, 0)
+                                ),
+                                0
+                            )
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS total_usable_stock,
+                COALESCE(MAX(i.reorder_level), 0) AS reorder_level,
+                COUNT(i.inventory_id) AS inventory_record_count
+            FROM products p
+            LEFT JOIN batches b
+                ON b.product_id = p.product_id
+            LEFT JOIN inventory i
+                ON i.batch_id = b.batch_id
+            WHERE p.status = 'active'
+            GROUP BY
+                p.product_id,
+                p.product_name,
+                p.barcode,
+                p.brand
+            HAVING COUNT(i.inventory_id) > 0
+            ORDER BY p.product_name ASC
+        """
+
+        cursor.execute(stock_query)
+        product_stock_rows = cursor.fetchall()
+
+        stock_alerts = []
+
+        for product in product_stock_rows:
+            total_stock = int(product["total_usable_stock"] or 0)
+            reorder_level = int(product["reorder_level"] or 0)
+
+            if total_stock == 0:
+                alert_type = "Out of Stock"
+            elif total_stock <= reorder_level:
+                alert_type = "Low Stock"
+            else:
+                # Sufficient stock in any usable batch prevents a false stock alert.
+                continue
+
+            stock_alerts.append({
+                "alert_id": f"stock-{product['product_id']}",
+                "inventory_id": None,
+                "batch_id": None,
+                "quantity": total_stock,
+                "reorder_level": reorder_level,
+                "batch_number": "All batches",
+                "expiry_date": None,
+                "batch_status": None,
+                "product_id": product["product_id"],
+                "product_name": product["product_name"],
+                "barcode": product["barcode"],
+                "brand": product["brand"],
+                "alert_type": alert_type
+            })
+
+        # Expiration alerts intentionally remain batch-specific.
+        expiry_query = """
             SELECT
                 i.inventory_id,
                 i.batch_id,
-                i.quantity,
+                GREATEST(
+                    LEAST(
+                        COALESCE(i.quantity, 0),
+                        COALESCE(b.quantity, 0)
+                    ),
+                    0
+                ) AS quantity,
                 i.reorder_level,
                 b.batch_number,
                 b.expiry_date,
@@ -91,60 +174,41 @@ def get_inventory_alerts():
                 p.product_id,
                 p.product_name,
                 p.barcode,
-                p.brand
+                p.brand,
+                CASE
+                    WHEN b.expiry_date < CURDATE() THEN 'Expired'
+                    ELSE 'Expiring Soon'
+                END AS alert_type
             FROM inventory i
             INNER JOIN batches b
                 ON i.batch_id = b.batch_id
             INNER JOIN products p
                 ON b.product_id = p.product_id
-            WHERE
-                i.quantity = 0
-                OR (
-                    i.quantity > 0
-                    AND i.quantity <= i.reorder_level
-                )
-                OR (
-                    b.expiry_date IS NOT NULL
-                    AND b.expiry_date < CURDATE()
-                )
-                OR (
-                    b.expiry_date IS NOT NULL
-                    AND b.expiry_date >= CURDATE()
-                    AND b.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-                )
+            WHERE p.status = 'active'
+                AND b.expiry_date IS NOT NULL
+                AND b.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
             ORDER BY
-                i.quantity ASC,
-                b.expiry_date IS NULL,
                 b.expiry_date ASC,
-                p.product_name ASC
+                p.product_name ASC,
+                b.batch_number ASC
         """
 
-        cursor.execute(query)
-        alerts = cursor.fetchall()
+        cursor.execute(expiry_query)
+        expiry_alerts = cursor.fetchall()
 
-        from datetime import date, timedelta
+        for alert in expiry_alerts:
+            alert["alert_id"] = f"expiry-{alert['batch_id']}"
+            alert["quantity"] = int(alert["quantity"] or 0)
+            alert["reorder_level"] = int(alert["reorder_level"] or 0)
 
-        today = date.today()
-        thirty_days_from_now = today + timedelta(days=30)
-
-        for alert in alerts:
-            expiry_date = alert["expiry_date"]
-            quantity = int(alert["quantity"])
-            reorder_level = int(alert["reorder_level"])
-
-            if quantity == 0:
-                alert["alert_type"] = "Out of Stock"
-            elif expiry_date is not None and expiry_date < today:
-                alert["alert_type"] = "Expired"
-            elif (
-                expiry_date is not None
-                and today <= expiry_date <= thirty_days_from_now
-            ):
-                alert["alert_type"] = "Expiring Soon"
-            elif quantity <= reorder_level:
-                alert["alert_type"] = "Low Stock"
-            else:
-                alert["alert_type"] = "Available"
+        # Keep stock-level alerts first, followed by batch-level expiry alerts.
+        stock_alerts.sort(
+            key=lambda alert: (
+                0 if alert["alert_type"] == "Out of Stock" else 1,
+                alert["product_name"].casefold()
+            )
+        )
+        alerts = stock_alerts + expiry_alerts
 
         return jsonify({
             "success": True,
@@ -165,7 +229,6 @@ def get_inventory_alerts():
 
         if connection:
             connection.close()
-
 
 @inventory_bp.route("/stock-in", methods=["POST"])
 @login_required(["admin", "owner", "manager"])

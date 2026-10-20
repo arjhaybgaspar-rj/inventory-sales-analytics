@@ -57,12 +57,44 @@ def get_summary():
 
         inventory_summary = cursor.fetchone()
 
+        # Count low-stock products, not individual batches. Only usable stock
+        # contributes to the total, and reorder thresholds are not summed across batches.
         cursor.execute(
             """
-            SELECT
-                COUNT(*) AS low_stock_items
-            FROM inventory
-            WHERE quantity <= reorder_level
+            SELECT COUNT(*) AS low_stock_items
+            FROM (
+                SELECT
+                    p.product_id,
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN b.status = 'available'
+                                    AND (b.expiry_date IS NULL OR b.expiry_date >= CURDATE())
+                                THEN GREATEST(
+                                    LEAST(
+                                        COALESCE(i.quantity, 0),
+                                        COALESCE(b.quantity, 0)
+                                    ),
+                                    0
+                                )
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS total_usable_stock,
+                    COALESCE(MAX(i.reorder_level), 0) AS reorder_level,
+                    COUNT(i.inventory_id) AS inventory_record_count
+                FROM products p
+                LEFT JOIN batches b
+                    ON b.product_id = p.product_id
+                LEFT JOIN inventory i
+                    ON i.batch_id = b.batch_id
+                WHERE p.status = 'active'
+                GROUP BY p.product_id
+                HAVING COUNT(i.inventory_id) > 0
+            ) AS product_stock
+            WHERE total_usable_stock > 0
+                AND total_usable_stock <= reorder_level
             """
         )
 
