@@ -1,4 +1,5 @@
 import {
+    Activity,
     AlertTriangle,
     ArrowRight,
     Boxes,
@@ -6,1736 +7,654 @@ import {
     CheckCircle2,
     CircleDollarSign,
     Clock3,
+    Leaf,
     Package,
     RefreshCw,
     ShoppingBag,
+    ShoppingCart,
     Sparkles,
     TrendingUp,
-    WalletCards
+    Wallet
 } from "lucide-react";
 
 import {
+    useCallback,
     useEffect,
     useMemo,
     useState
 } from "react";
 
-import {
-    API_URL
-} from "../../services/api";
-
+import { API_URL } from "../../services/api";
 import "./Dashboard.css";
 
+const MANAGER_ROLES = ["admin", "owner", "manager"];
+
+function readStoredUser() {
+    try {
+        const stored = localStorage.getItem("user");
+        return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+        console.error("Unable to read stored user:", error);
+        localStorage.removeItem("user");
+        return null;
+    }
+}
+
+async function fetchJson(path) {
+    const response = await fetch(`${API_URL}${path}`, {
+        credentials: "include"
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    return {
+        ok: response.ok && data.success === true,
+        status: response.status,
+        data
+    };
+}
+
+function formatCurrency(value) {
+    return new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(Number(value) || 0);
+}
+
+function formatNumber(value) {
+    return new Intl.NumberFormat("en-PH").format(Number(value) || 0);
+}
+
+function formatDate(value, includeTime = false) {
+    if (!value) return "—";
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
+
+    return new Intl.DateTimeFormat("en-PH", includeTime
+        ? {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit"
+        }
+        : {
+            month: "short",
+            day: "numeric",
+            year: "numeric"
+        }
+    ).format(date);
+}
+
+function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+}
+
+function getInventoryStatus(item) {
+    const quantity = Number(item.quantity) || 0;
+    const reorderLevel = Number(item.reorder_level) || 0;
+
+    if (quantity <= 0) return "out";
+
+    if (item.expiry_date) {
+        const expiry = new Date(`${String(item.expiry_date).slice(0, 10)}T00:00:00`);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (!Number.isNaN(expiry.getTime())) {
+            if (expiry < today) return "expired";
+
+            const soon = new Date(today);
+            soon.setDate(soon.getDate() + 30);
+            if (expiry <= soon) return "expiring";
+        }
+    }
+
+    if (quantity <= reorderLevel) return "low";
+    return "healthy";
+}
+
+const STATUS_LABELS = {
+    healthy: "Available",
+    low: "Low stock",
+    out: "Out of stock",
+    expiring: "Expiring soon",
+    expired: "Expired"
+};
 
 function Dashboard() {
-    const [
-        user,
-        setUser
-    ] = useState(null);
+    const [user] = useState(readStoredUser);
+    const [summary, setSummary] = useState(null);
+    const [inventory, setInventory] = useState([]);
+    const [recentSales, setRecentSales] = useState([]);
+    const [cashierProducts, setCashierProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [message, setMessage] = useState("");
 
-    const [
-        summary,
-        setSummary
-    ] = useState(null);
+    const role = String(user?.role || "").toLowerCase();
+    const canManage = MANAGER_ROLES.includes(role);
+    const displayName = user?.full_name || user?.username || "there";
+    const firstName = displayName.trim().split(/\s+/)[0] || "there";
+    const roleLabel = role ? role.charAt(0).toUpperCase() + role.slice(1) : "User";
 
-    const [
-        inventory,
-        setInventory
-    ] = useState([]);
-
-    const [
-        recentSales,
-        setRecentSales
-    ] = useState([]);
-
-    const [
-        loading,
-        setLoading
-    ] = useState(true);
-
-    const [
-        message,
-        setMessage
-    ] = useState("");
-
-
-    useEffect(() => {
-        const storedUser =
-            localStorage.getItem(
-                "user"
-            );
-
-        if (!storedUser) {
-            window.location.href =
-                "/";
-
+    const loadDashboard = useCallback(async () => {
+        if (!user) {
+            setLoading(false);
             return;
         }
 
+        setLoading(true);
+        setMessage("");
+
         try {
-            setUser(
-                JSON.parse(
-                    storedUser
-                )
-            );
-        } catch (error) {
-            console.error(
-                "Invalid stored user:",
-                error
-            );
-
-            localStorage.removeItem(
-                "user"
-            );
-
-            window.location.href =
-                "/";
-        }
-    }, []);
-
-
-    const normalizedRole =
-        String(
-            user?.role || ""
-        ).toLowerCase();
-
-
-    const canManage =
-        [
-            "admin",
-            "owner",
-            "manager"
-        ].includes(
-            normalizedRole
-        );
-
-
-    const formatCurrency = (
-        value
-    ) => {
-        return new Intl.NumberFormat(
-            "en-PH",
-            {
-                style:
-                    "currency",
-
-                currency:
-                    "PHP",
-
-                minimumFractionDigits:
-                    2
-            }
-        ).format(
-            Number(value || 0)
-        );
-    };
-
-
-    const parseDateOnly = (
-        value
-    ) => {
-        if (!value) {
-            return null;
-        }
-
-        const raw =
-            String(value).slice(
-                0,
-                10
-            );
-
-        const parts =
-            raw
-                .split("-")
-                .map(Number);
-
-        if (
-            parts.length !== 3 ||
-            parts.some(
-                (part) =>
-                    !Number.isFinite(
-                        part
-                    )
-            )
-        ) {
-            return new Date(
-                value
-            );
-        }
-
-        return new Date(
-            parts[0],
-            parts[1] - 1,
-            parts[2]
-        );
-    };
-
-
-    const formatDate = (
-        value
-    ) => {
-        if (!value) {
-            return "N/A";
-        }
-
-        const date =
-            parseDateOnly(
-                value
-            );
-
-        if (
-            !date ||
-            Number.isNaN(
-                date.getTime()
-            )
-        ) {
-            return "N/A";
-        }
-
-        return new Intl.DateTimeFormat(
-            "en-PH",
-            {
-                month:
-                    "short",
-
-                day:
-                    "numeric",
-
-                year:
-                    "numeric"
-            }
-        ).format(date);
-    };
-
-
-    const formatDateTime = (
-        value
-    ) => {
-        if (!value) {
-            return "N/A";
-        }
-
-        const date =
-            new Date(value);
-
-        if (
-            Number.isNaN(
-                date.getTime()
-            )
-        ) {
-            return "N/A";
-        }
-
-        return new Intl.DateTimeFormat(
-            "en-PH",
-            {
-                month:
-                    "short",
-
-                day:
-                    "numeric",
-
-                year:
-                    "numeric",
-
-                hour:
-                    "numeric",
-
-                minute:
-                    "2-digit"
-            }
-        ).format(date);
-    };
-
-
-    const loadManagerDashboard =
-        async () => {
-            const [
-                summaryResponse,
-                inventoryResponse,
-                salesResponse
-            ] = await Promise.all([
-                fetch(
-                    `${API_URL}/reports/summary`,
-                    {
-                        credentials:
-                            "include"
-                    }
-                ),
-
-                fetch(
-                    `${API_URL}/inventory`,
-                    {
-                        credentials:
-                            "include"
-                    }
-                ),
-
-                fetch(
-                    `${API_URL}/reports/recent-sales`,
-                    {
-                        credentials:
-                            "include"
-                    }
-                )
-            ]);
-
-
-            const [
-                summaryData,
-                inventoryData,
-                salesData
-            ] = await Promise.all([
-                summaryResponse.json(),
-                inventoryResponse.json(),
-                salesResponse.json()
-            ]);
-
-
-            if (
-                summaryResponse.ok &&
-                summaryData.success
-            ) {
-                setSummary(
-                    summaryData.summary
-                );
-            } else {
-                setSummary(null);
-            }
-
-
-            if (
-                inventoryResponse.ok &&
-                inventoryData.success
-            ) {
-                setInventory(
-                    Array.isArray(
-                        inventoryData.inventory
-                    )
-                        ? inventoryData.inventory
-                        : []
-                );
-            } else {
-                setInventory([]);
-            }
-
-
-            if (
-                salesResponse.ok &&
-                salesData.success
-            ) {
-                setRecentSales(
-                    Array.isArray(
-                        salesData.sales
-                    )
-                        ? salesData.sales
-                        : []
-                );
-            } else {
-                setRecentSales([]);
-            }
-
-
-            if (
-                !summaryResponse.ok ||
-                !summaryData.success ||
-                !inventoryResponse.ok ||
-                !inventoryData.success ||
-                !salesResponse.ok ||
-                !salesData.success
-            ) {
-                setMessage(
-                    "Some dashboard information could not be loaded."
-                );
-            }
-        };
-
-
-    const loadCashierDashboard =
-        async () => {
-            /*
-                Cashiers cannot use the
-                manager-only /reports and
-                /inventory endpoints.
-
-                We only use endpoints that
-                the backend already permits
-                for cashier accounts.
-            */
-
-            const [
-                salesResponse,
-                productsResponse
-            ] = await Promise.all([
-                fetch(
-                    `${API_URL}/sales`,
-                    {
-                        credentials:
-                            "include"
-                    }
-                ),
-
-                fetch(
-                    `${API_URL}/products`,
-                    {
-                        credentials:
-                            "include"
-                    }
-                )
-            ]);
-
-
-            const [
-                salesData,
-                productsData
-            ] = await Promise.all([
-                salesResponse.json(),
-                productsResponse.json()
-            ]);
-
-
-            const sales =
-                salesResponse.ok &&
-                salesData.success &&
-                Array.isArray(
-                    salesData.sales
-                )
-                    ? salesData.sales
-                    : [];
-
-
-            const products =
-                productsResponse.ok &&
-                productsData.success &&
-                Array.isArray(
-                    productsData.products
-                )
-                    ? productsData.products
-                    : [];
-
-
-            const totalSales =
-                sales.reduce(
-                    (
-                        total,
-                        sale
-                    ) =>
-                        total +
-                        Number(
-                            sale.total_amount ||
-                                0
-                        ),
-                    0
-                );
-
-
-            setSummary({
-                total_sales:
-                    totalSales,
-
-                total_transactions:
-                    sales.length,
-
-                total_products:
-                    products.length
-            });
-
-
-            setRecentSales(
-                sales
-            );
-
-
-            setInventory([]);
-
-
-            if (
-                !salesResponse.ok ||
-                !salesData.success ||
-                !productsResponse.ok ||
-                !productsData.success
-            ) {
-                setMessage(
-                    "Some dashboard information could not be loaded."
-                );
-            }
-        };
-
-
-    const loadDashboard =
-        async () => {
-            if (!user) {
-                return;
-            }
-
-            setLoading(true);
-
-            setMessage("");
-
-
-            try {
-                if (canManage) {
-                    await loadManagerDashboard();
-                } else {
-                    await loadCashierDashboard();
+            if (canManage) {
+                const [summaryResult, inventoryResult, salesResult] = await Promise.all([
+                    fetchJson("/reports/summary"),
+                    fetchJson("/inventory"),
+                    fetchJson("/reports/recent-sales")
+                ]);
+
+                if (summaryResult.ok) {
+                    setSummary(summaryResult.data.summary || null);
                 }
-            } catch (error) {
-                console.error(
-                    "Dashboard loading error:",
-                    error
-                );
 
-                setMessage(
-                    "Unable to connect to the backend."
-                );
-            } finally {
-                setLoading(false);
+                if (inventoryResult.ok) {
+                    setInventory(Array.isArray(inventoryResult.data.inventory)
+                        ? inventoryResult.data.inventory
+                        : []);
+                }
+
+                if (salesResult.ok) {
+                    setRecentSales(Array.isArray(salesResult.data.sales)
+                        ? salesResult.data.sales
+                        : []);
+                }
+
+                if (!summaryResult.ok || !inventoryResult.ok || !salesResult.ok) {
+                    setMessage("Some dashboard information could not be loaded. Use Refresh to try again.");
+                }
+            } else {
+                // Cashiers must not call manager-only report or inventory endpoints.
+                const [salesResult, productsResult] = await Promise.all([
+                    fetchJson("/sales"),
+                    fetchJson("/products")
+                ]);
+
+                if (salesResult.ok) {
+                    setRecentSales(Array.isArray(salesResult.data.sales)
+                        ? salesResult.data.sales
+                        : []);
+                }
+
+                if (productsResult.ok) {
+                    setCashierProducts(Array.isArray(productsResult.data.products)
+                        ? productsResult.data.products
+                        : []);
+                }
+
+                if (!salesResult.ok || !productsResult.ok) {
+                    setMessage("Some dashboard information could not be loaded. Use Refresh to try again.");
+                }
             }
-        };
-
+        } catch (error) {
+            console.error("Dashboard loading error:", error);
+            setMessage("Unable to connect to the backend. Check that the backend server is running.");
+        } finally {
+            setLoading(false);
+        }
+    }, [canManage, user]);
 
     useEffect(() => {
-        if (user) {
-            loadDashboard();
-        }
-    }, [user]);
-
-
-    const inventoryHealth =
-        useMemo(() => {
-            const result = {
-                available: 0,
-                lowStock: 0,
-                outOfStock: 0,
-                expiring: 0,
-                expired: 0
-            };
-
-
-            const today =
-                new Date();
-
-            today.setHours(
-                0,
-                0,
-                0,
-                0
-            );
-
-
-            const thirtyDays =
-                new Date(today);
-
-            thirtyDays.setDate(
-                thirtyDays.getDate() +
-                    30
-            );
-
-
-            inventory.forEach(
-                (item) => {
-                    const quantity =
-                        Number(
-                            item.quantity ||
-                                0
-                        );
-
-                    const reorderLevel =
-                        Number(
-                            item.reorder_level ||
-                                0
-                        );
-
-
-                    if (
-                        quantity ===
-                        0
-                    ) {
-                        result.outOfStock +=
-                            1;
-
-                        return;
-                    }
-
-
-                    if (
-                        item.expiry_date
-                    ) {
-                        const expiry =
-                            parseDateOnly(
-                                item.expiry_date
-                            );
-
-
-                        if (
-                            expiry &&
-                            expiry <
-                                today
-                        ) {
-                            result.expired +=
-                                1;
-
-                            return;
-                        }
-
-
-                        if (
-                            expiry &&
-                            expiry <=
-                                thirtyDays
-                        ) {
-                            result.expiring +=
-                                1;
-
-                            return;
-                        }
-                    }
-
-
-                    if (
-                        quantity <=
-                        reorderLevel
-                    ) {
-                        result.lowStock +=
-                            1;
-
-                        return;
-                    }
-
-
-                    result.available +=
-                        1;
-                }
-            );
-
-
-            return result;
-        }, [inventory]);
-
-
-    const totalHealth =
-        inventoryHealth.available +
-        inventoryHealth.lowStock +
-        inventoryHealth.outOfStock +
-        inventoryHealth.expiring +
-        inventoryHealth.expired;
-
-
-    const percentage = (
-        value
-    ) => {
-        if (!totalHealth) {
-            return 0;
+        if (!user) {
+            window.location.assign("/");
+            return;
         }
 
-        return (
-            value /
-            totalHealth
-        ) * 100;
-    };
+        Promise.resolve().then(() => {
+            void loadDashboard();
+        });
+    }, [loadDashboard, user]);
 
-
-    const averageTransaction =
-        Number(
-            summary?.total_transactions ||
-                0
-        ) > 0
-            ? Number(
-                  summary?.total_sales ||
-                      0
-              ) /
-              Number(
-                  summary
-                      .total_transactions
-              )
-            : 0;
-
-
-    const getGreeting = () => {
-        const hour =
-            new Date()
-                .getHours();
-
-        if (hour < 12) {
-            return "Good morning";
-        }
-
-        if (hour < 18) {
-            return "Good afternoon";
-        }
-
-        return "Good evening";
-    };
-
-
-    const todayLabel =
-        new Intl.DateTimeFormat(
-            "en-PH",
-            {
-                weekday:
-                    "long",
-
-                month:
-                    "long",
-
-                day:
-                    "numeric",
-
-                year:
-                    "numeric"
-            }
-        ).format(
-            new Date()
-        );
-
-
-    const getInventoryStatus =
-        (item) => {
-            const quantity =
-                Number(
-                    item.quantity ||
-                        0
-                );
-
-            const reorderLevel =
-                Number(
-                    item.reorder_level ||
-                        0
-                );
-
-
-            if (quantity === 0) {
-                return {
-                    label:
-                        "Out of Stock",
-
-                    className:
-                        "dashboard-status-out"
-                };
-            }
-
-
-            if (
-                item.expiry_date
-            ) {
-                const expiry =
-                    parseDateOnly(
-                        item.expiry_date
-                    );
-
-                const today =
-                    new Date();
-
-                today.setHours(
-                    0,
-                    0,
-                    0,
-                    0
-                );
-
-
-                if (
-                    expiry &&
-                    expiry < today
-                ) {
-                    return {
-                        label:
-                            "Expired",
-
-                        className:
-                            "dashboard-status-expired"
-                    };
-                }
-
-
-                const thirtyDays =
-                    new Date(today);
-
-                thirtyDays.setDate(
-                    thirtyDays.getDate() +
-                        30
-                );
-
-
-                if (
-                    expiry &&
-                    expiry <=
-                        thirtyDays
-                ) {
-                    return {
-                        label:
-                            "Expiring Soon",
-
-                        className:
-                            "dashboard-status-expiring"
-                    };
-                }
-            }
-
-
-            if (
-                quantity <=
-                reorderLevel
-            ) {
-                return {
-                    label:
-                        "Low Stock",
-
-                    className:
-                        "dashboard-status-low"
-                };
-            }
-
-
-            return {
-                label:
-                    "Available",
-
-                className:
-                    "dashboard-status-available"
-            };
+    const stockCounts = useMemo(() => {
+        const counts = {
+            healthy: 0,
+            low: 0,
+            out: 0,
+            expiring: 0,
+            expired: 0
         };
 
+        inventory.forEach((item) => {
+            counts[getInventoryStatus(item)] += 1;
+        });
 
-    if (!user) {
-        return null;
-    }
+        return counts;
+    }, [inventory]);
 
+    const cashierSalesTotal = useMemo(() => (
+        recentSales.reduce((total, sale) => total + (Number(sale.total_amount) || 0), 0)
+    ), [recentSales]);
 
-    const managerCards = [
+    const cashierAverageSale = recentSales.length
+        ? cashierSalesTotal / recentSales.length
+        : 0;
+
+    const managerKpis = [
         {
-            label:
-                "Total Sales",
-
-            value:
-                formatCurrency(
-                    summary?.total_sales
-                ),
-
-            description:
-                "Recorded revenue",
-
-            icon:
-                CircleDollarSign,
-
-            variant:
-                "blue"
+            label: "Total sales",
+            value: formatCurrency(summary?.total_sales),
+            note: "Recorded sales value",
+            icon: CircleDollarSign,
+            tone: "green"
         },
-
         {
-            label:
-                "Transactions",
-
-            value:
-                summary?.total_transactions ??
-                0,
-
-            description:
-                "Completed sales",
-
-            icon:
-                WalletCards,
-
-            variant:
-                "green"
+            label: "Transactions",
+            value: formatNumber(summary?.total_transactions),
+            note: "Completed transactions",
+            icon: ShoppingCart,
+            tone: "orange"
         },
-
         {
-            label:
-                "Items Sold",
-
-            value:
-                summary?.total_items_sold ??
-                0,
-
-            description:
-                "Units sold",
-
-            icon:
-                ShoppingBag,
-
-            variant:
-                "purple"
+            label: "Items sold",
+            value: formatNumber(summary?.total_items_sold),
+            note: "Units sold in recorded sales",
+            icon: ShoppingBag,
+            tone: "sage"
         },
-
         {
-            label:
-                "Active Products",
-
-            value:
-                summary?.total_products ??
-                0,
-
-            description:
-                "Registered products",
-
-            icon:
-                Package,
-
-            variant:
-                "orange"
+            label: "Stock units",
+            value: formatNumber(summary?.total_stock),
+            note: "Units across inventory batches",
+            icon: Boxes,
+            tone: "olive"
         }
     ];
 
-
-    const cashierCards = [
+    const cashierKpis = [
         {
-            label:
-                "Recorded Sales",
-
-            value:
-                formatCurrency(
-                    summary?.total_sales
-                ),
-
-            description:
-                "Sales history revenue",
-
-            icon:
-                CircleDollarSign,
-
-            variant:
-                "blue"
+            label: "Sales in history",
+            value: formatCurrency(cashierSalesTotal),
+            note: "Total of returned sales records",
+            icon: CircleDollarSign,
+            tone: "green"
         },
-
         {
-            label:
-                "Transactions",
-
-            value:
-                summary?.total_transactions ??
-                0,
-
-            description:
-                "Recorded sales",
-
-            icon:
-                WalletCards,
-
-            variant:
-                "green"
+            label: "Transactions",
+            value: formatNumber(recentSales.length),
+            note: "Sales records available",
+            icon: ShoppingCart,
+            tone: "orange"
         },
-
         {
-            label:
-                "Active Products",
-
-            value:
-                summary?.total_products ??
-                0,
-
-            description:
-                "Available catalog",
-
-            icon:
-                Package,
-
-            variant:
-                "purple"
+            label: "Product catalog",
+            value: formatNumber(cashierProducts.length),
+            note: "Products available to browse",
+            icon: Package,
+            tone: "sage"
         },
-
         {
-            label:
-                "Average Sale",
-
-            value:
-                formatCurrency(
-                    averageTransaction
-                ),
-
-            description:
-                "Per transaction",
-
-            icon:
-                TrendingUp,
-
-            variant:
-                "orange"
+            label: "Average sale",
+            value: formatCurrency(cashierAverageSale),
+            note: "Average of returned sales records",
+            icon: Wallet,
+            tone: "olive"
         }
     ];
 
+    const kpis = canManage ? managerKpis : cashierKpis;
 
-    const cards =
-        canManage
-            ? managerCards
-            : cashierCards;
+    const quickActions = canManage
+        ? [
+            { label: "Manage products", description: "Review the product catalog", icon: Package, path: "/products", tone: "sage" },
+            { label: "Manage inventory", description: "Stock-in and monitor alerts", icon: Boxes, path: "/inventory", tone: "green" },
+            { label: "Open point of sale", description: "Create a sales transaction", icon: ShoppingCart, path: "/sales", tone: "orange" },
+            { label: "View reports", description: "Review sales analytics", icon: TrendingUp, path: "/reports", tone: "olive" }
+        ]
+        : [
+            { label: "Open point of sale", description: "Create a sales transaction", icon: ShoppingCart, path: "/sales", tone: "orange" }
+        ];
 
+    const goTo = (path) => window.location.assign(path);
+
+    if (!user) return null;
 
     return (
-        <div className="premium-dashboard">
-            <header className="dashboard-header">
-                <div>
-                    <span className="dashboard-eyebrow">
-                        <Sparkles
-                            size={15}
-                            strokeWidth={2}
-                        />
-
-                        Business Overview
+        <main className="botanical-dashboard">
+            <header className="botanical-dashboard-header">
+                <div className="botanical-dashboard-heading">
+                    <span className="botanical-eyebrow">
+                        <Leaf size={15} strokeWidth={2} />
+                        Inventory &amp; Sales Workspace
                     </span>
-
-                    <h1>
-                        Dashboard
-                    </h1>
-
-                    <p>
-                        Monitor sales,
-                        inventory health,
-                        and business
-                        activity.
-                    </p>
+                    <h1>{getGreeting()}</h1>
                 </div>
 
-
-                <div className="dashboard-header-actions">
-                    <div className="dashboard-date">
-                        <CalendarDays
-                            size={17}
-                            strokeWidth={1.9}
-                        />
-
-                        {
-                            todayLabel
-                        }
+                <div className="botanical-dashboard-header-actions">
+                    <div className="botanical-date-chip">
+                        <CalendarDays size={17} />
+                        <span>{formatDate(new Date())}</span>
                     </div>
-
                     <button
                         type="button"
-                        className="dashboard-refresh-button"
-                        onClick={
-                            loadDashboard
-                        }
-                        disabled={
-                            loading
-                        }
+                        className="botanical-button botanical-button-secondary"
+                        onClick={loadDashboard}
+                        disabled={loading}
                     >
-                        <RefreshCw
-                            size={17}
-                            strokeWidth={2}
-                            className={
-                                loading
-                                    ? "dashboard-spin"
-                                    : ""
-                            }
-                        />
-
-                        {loading
-                            ? "Refreshing"
-                            : "Refresh"}
+                        <RefreshCw size={16} className={loading ? "botanical-spin" : ""} />
+                        {loading ? "Refreshing" : "Refresh"}
                     </button>
                 </div>
             </header>
 
-
-            <section className="dashboard-welcome">
-                <div className="dashboard-welcome-glow" />
-
-                <div className="dashboard-welcome-content">
-                    <div className="dashboard-welcome-icon">
-                        <TrendingUp
-                            size={27}
-                            strokeWidth={1.8}
-                        />
-                    </div>
-
-                    <div>
-                        <span>
-                            {
-                                getGreeting()
-                            }
-                        </span>
-
-                        <h2>
-                            {
-                                user.full_name
-                            }
-                        </h2>
-
-                        <p>
-                            Here&apos;s the
-                            latest overview
-                            available for your
-                            account.
-                        </p>
+            <section className="botanical-welcome-banner">
+                <div className="botanical-welcome-copy">
+                    <span className="botanical-welcome-label">
+                        <Sparkles size={15} />
+                        Your daily overview
+                    </span>
+                    <h2>Everything in its place.</h2>
+                    <p>
+                        {canManage
+                            ? "Monitor sales performance, inventory health, and recent activity from one calm workspace."
+                            : "Keep checkout moving and review your recent sales activity from one place."}
+                    </p>
+                    <div className="botanical-welcome-meta">
+                        <span className="botanical-role-chip">{roleLabel} account</span>
+                        <span><Clock3 size={14} /> Updated when you refresh</span>
                     </div>
                 </div>
-
-
-                <div className="dashboard-role">
-                    <span>
-                        Account Role
-                    </span>
-
-                    <strong>
-                        {
-                            user.role
-                        }
-                    </strong>
+                <div className="botanical-welcome-art" aria-hidden="true">
+                    <div className="botanical-art-circle botanical-art-circle-one" />
+                    <div className="botanical-art-circle botanical-art-circle-two" />
+                    <div className="botanical-art-leaf botanical-art-leaf-one"><Leaf size={65} strokeWidth={1.15} /></div>
+                    <div className="botanical-art-leaf botanical-art-leaf-two"><Leaf size={43} strokeWidth={1.15} /></div>
+                    <div className="botanical-art-card">
+                        <Activity size={23} />
+                        <span>Business overview</span>
+                        <strong>{canManage ? "In focus" : "Ready to sell"}</strong>
+                    </div>
                 </div>
             </section>
-
 
             {message && (
-                <div className="dashboard-message">
-                    <AlertTriangle
-                        size={18}
-                        strokeWidth={2}
-                    />
-
-                    {
-                        message
-                    }
+                <div className="botanical-dashboard-message" role="status">
+                    <AlertTriangle size={18} />
+                    <span>{message}</span>
+                    <button type="button" onClick={() => setMessage("")} aria-label="Dismiss message">×</button>
                 </div>
             )}
 
-
-            <section className="dashboard-kpi-grid">
-                {cards.map(
-                    (card) => {
-                        const Icon =
-                            card.icon;
-
-                        return (
-                            <article
-                                key={
-                                    card.label
-                                }
-                                className={`dashboard-kpi-card dashboard-kpi-${card.variant}`}
-                            >
-                                <div className="dashboard-kpi-top">
-                                    <div className="dashboard-kpi-icon">
-                                        <Icon
-                                            size={22}
-                                            strokeWidth={1.9}
-                                        />
-                                    </div>
-
-                                    <span>
-                                        {
-                                            card.label
-                                        }
-                                    </span>
-                                </div>
-
-                                <strong>
-                                    {loading
-                                        ? "..."
-                                        : card.value}
-                                </strong>
-
-                                <p>
-                                    {
-                                        card.description
-                                    }
-                                </p>
-                            </article>
-                        );
-                    }
-                )}
+            <section className={`botanical-kpi-grid ${canManage ? "botanical-kpi-grid-manager" : ""}`} aria-label="Business metrics">
+                {kpis.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <article className="botanical-kpi-card" key={item.label}>
+                            <div className={`botanical-kpi-icon tone-${item.tone}`}>
+                                <Icon size={22} strokeWidth={1.85} />
+                            </div>
+                            <div className="botanical-kpi-copy">
+                                <span>{item.label}</span>
+                                <strong>{loading ? "—" : item.value}</strong>
+                                <small>{item.note}</small>
+                            </div>
+                        </article>
+                    );
+                })}
             </section>
 
-
             {canManage && (
-                <>
-                    <section className="dashboard-secondary-grid">
-                        <article>
-                            <div className="dashboard-secondary-icon blue">
-                                <Boxes
-                                    size={21}
-                                    strokeWidth={1.9}
-                                />
-                            </div>
-
+                <section className="botanical-manager-overview">
+                    <article className="botanical-panel botanical-stock-health-panel">
+                        <div className="botanical-panel-heading">
                             <div>
-                                <span>
-                                    Total Stock
-                                </span>
-
-                                <strong>
-                                    {summary?.total_stock ??
-                                        0}
-                                </strong>
+                                <span className="botanical-panel-eyebrow">Stock monitoring</span>
+                                <h2>Inventory health</h2>
+                                <p>Batch-level status based on quantity and expiry date.</p>
                             </div>
-                        </article>
+                            <span className="botanical-panel-heading-icon"><Boxes size={20} /></span>
+                        </div>
 
-
-                        <article>
-                            <div className="dashboard-secondary-icon orange">
-                                <AlertTriangle
-                                    size={21}
-                                    strokeWidth={1.9}
-                                />
+                        {loading ? (
+                            <div className="botanical-panel-loading">Loading stock status…</div>
+                        ) : inventory.length === 0 ? (
+                            <div className="botanical-panel-empty">
+                                <Package size={27} />
+                                <strong>No inventory batches yet</strong>
+                                <span>Stock-in records will appear here.</span>
                             </div>
-
-                            <div>
-                                <span>
-                                    Low Stock
-                                </span>
-
-                                <strong>
-                                    {summary?.low_stock_items ??
-                                        0}
-                                </strong>
-                            </div>
-                        </article>
-
-
-                        <article>
-                            <div className="dashboard-secondary-icon purple">
-                                <Clock3
-                                    size={21}
-                                    strokeWidth={1.9}
-                                />
-                            </div>
-
-                            <div>
-                                <span>
-                                    Expiring Soon
-                                </span>
-
-                                <strong>
-                                    {summary?.expiring_items ??
-                                        0}
-                                </strong>
-                            </div>
-                        </article>
-
-
-                        <article>
-                            <div className="dashboard-secondary-icon green">
-                                <TrendingUp
-                                    size={21}
-                                    strokeWidth={1.9}
-                                />
-                            </div>
-
-                            <div>
-                                <span>
-                                    Average Sale
-                                </span>
-
-                                <strong className="dashboard-money">
-                                    {formatCurrency(
-                                        averageTransaction
-                                    )}
-                                </strong>
-                            </div>
-                        </article>
-                    </section>
-
-
-                    <section className="dashboard-insight-grid">
-                        <article className="dashboard-panel">
-                            <div className="dashboard-panel-header">
-                                <div>
-                                    <span className="dashboard-panel-eyebrow">
-                                        Inventory
-                                    </span>
-
-                                    <h2>
-                                        Stock Health
-                                    </h2>
-
-                                    <p>
-                                        Current
-                                        condition of
-                                        recorded
-                                        inventory
-                                        batches.
-                                    </p>
+                        ) : (
+                            <>
+                                <div className="botanical-stock-total">
+                                    <div>
+                                        <span>Recorded batches</span>
+                                        <strong>{formatNumber(inventory.length)}</strong>
+                                    </div>
+                                    <div className="botanical-stock-total-mark"><CheckCircle2 size={19} /></div>
                                 </div>
-
-                                <button
-                                    type="button"
-                                    className="dashboard-link-button"
-                                    onClick={() => {
-                                        window.location.href =
-                                            "/inventory";
-                                    }}
-                                >
-                                    View Inventory
-
-                                    <ArrowRight
-                                        size={16}
-                                        strokeWidth={2}
-                                    />
+                                <div className="botanical-stock-bar" aria-label="Inventory health distribution">
+                                    {[
+                                        ["healthy", "#66886b"],
+                                        ["low", "#d9764c"],
+                                        ["expiring", "#b6a16c"],
+                                        ["out", "#c85c4d"],
+                                        ["expired", "#a8443a"]
+                                    ].map(([key, color]) => (
+                                        <span
+                                            key={key}
+                                            style={{
+                                                width: `${(stockCounts[key] / inventory.length) * 100}%`,
+                                                backgroundColor: color
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                                <div className="botanical-stock-legend">
+                                    {[
+                                        ["healthy", "Available", "#66886b"],
+                                        ["low", "Low stock", "#d9764c"],
+                                        ["expiring", "Expiring soon", "#b6a16c"],
+                                        ["out", "Out of stock", "#c85c4d"],
+                                        ["expired", "Expired", "#a8443a"]
+                                    ].map(([key, label, color]) => (
+                                        <div className="botanical-stock-legend-item" key={key}>
+                                            <span className="botanical-legend-dot" style={{ backgroundColor: color }} />
+                                            <span>{label}</span>
+                                            <strong>{stockCounts[key]}</strong>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button type="button" className="botanical-text-link" onClick={() => goTo("/inventory")}>
+                                    Review inventory <ArrowRight size={15} />
                                 </button>
-                            </div>
+                            </>
+                        )}
+                    </article>
 
-
-                            <div className="dashboard-health-grid">
-                                <div className="dashboard-health-stat available">
-                                    <CheckCircle2
-                                        size={21}
-                                    />
-
-                                    <span>
-                                        Available
-                                    </span>
-
-                                    <strong>
-                                        {
-                                            inventoryHealth.available
-                                        }
-                                    </strong>
-                                </div>
-
-                                <div className="dashboard-health-stat low">
-                                    <AlertTriangle
-                                        size={21}
-                                    />
-
-                                    <span>
-                                        Low Stock
-                                    </span>
-
-                                    <strong>
-                                        {
-                                            inventoryHealth.lowStock
-                                        }
-                                    </strong>
-                                </div>
-
-                                <div className="dashboard-health-stat out">
-                                    <Boxes
-                                        size={21}
-                                    />
-
-                                    <span>
-                                        Out of Stock
-                                    </span>
-
-                                    <strong>
-                                        {
-                                            inventoryHealth.outOfStock
-                                        }
-                                    </strong>
-                                </div>
-
-                                <div className="dashboard-health-stat expiring">
-                                    <Clock3
-                                        size={21}
-                                    />
-
-                                    <span>
-                                        Expiring
-                                    </span>
-
-                                    <strong>
-                                        {
-                                            inventoryHealth.expiring
-                                        }
-                                    </strong>
-                                </div>
-                            </div>
-
-
-                            <div className="dashboard-health-bar">
-                                <div
-                                    className="health-bar-available"
-                                    style={{
-                                        width:
-                                            `${percentage(
-                                                inventoryHealth.available
-                                            )}%`
-                                    }}
-                                />
-
-                                <div
-                                    className="health-bar-low"
-                                    style={{
-                                        width:
-                                            `${percentage(
-                                                inventoryHealth.lowStock
-                                            )}%`
-                                    }}
-                                />
-
-                                <div
-                                    className="health-bar-out"
-                                    style={{
-                                        width:
-                                            `${percentage(
-                                                inventoryHealth.outOfStock
-                                            )}%`
-                                    }}
-                                />
-
-                                <div
-                                    className="health-bar-expiring"
-                                    style={{
-                                        width:
-                                            `${percentage(
-                                                inventoryHealth.expiring
-                                            )}%`
-                                    }}
-                                />
-
-                                <div
-                                    className="health-bar-expired"
-                                    style={{
-                                        width:
-                                            `${percentage(
-                                                inventoryHealth.expired
-                                            )}%`
-                                    }}
-                                />
-                            </div>
-                        </article>
-
-
-                        <article className="dashboard-panel dashboard-snapshot-panel">
-                            <div className="dashboard-panel-header">
-                                <div>
-                                    <span className="dashboard-panel-eyebrow">
-                                        Performance
-                                    </span>
-
-                                    <h2>
-                                        Business Snapshot
-                                    </h2>
-
-                                    <p>
-                                        Summary derived
-                                        from current
-                                        report data.
-                                    </p>
-                                </div>
-                            </div>
-
-
-                            <div className="dashboard-snapshot-list">
-                                <div>
-                                    <span>
-                                        Average
-                                        Transaction
-                                    </span>
-
-                                    <strong>
-                                        {formatCurrency(
-                                            averageTransaction
-                                        )}
-                                    </strong>
-                                </div>
-
-                                <div>
-                                    <span>
-                                        Active Products
-                                    </span>
-
-                                    <strong>
-                                        {summary?.total_products ??
-                                            0}
-                                    </strong>
-                                </div>
-
-                                <div>
-                                    <span>
-                                        Inventory
-                                        Batches
-                                    </span>
-
-                                    <strong>
-                                        {
-                                            inventory.length
-                                        }
-                                    </strong>
-                                </div>
-
-                                <div>
-                                    <span>
-                                        Items Sold
-                                    </span>
-
-                                    <strong>
-                                        {summary?.total_items_sold ??
-                                            0}
-                                    </strong>
-                                </div>
-                            </div>
-                        </article>
-                    </section>
-
-
-                    <section className="dashboard-panel dashboard-table-panel">
-                        <div className="dashboard-panel-header">
+                    <article className="botanical-panel botanical-business-snapshot">
+                        <div className="botanical-panel-heading">
                             <div>
-                                <span className="dashboard-panel-eyebrow">
-                                    Inventory
-                                </span>
-
-                                <h2>
-                                    Inventory Snapshot
-                                </h2>
-
-                                <p>
-                                    First five
-                                    inventory records
-                                    returned by the
-                                    inventory service.
-                                </p>
+                                <span className="botanical-panel-eyebrow">Business snapshot</span>
+                                <h2>Items to keep an eye on</h2>
+                                <p>Key counts from your inventory summary.</p>
                             </div>
-
-                            <button
-                                type="button"
-                                className="dashboard-link-button"
-                                onClick={() => {
-                                    window.location.href =
-                                        "/inventory";
-                                }}
-                            >
-                                View All
-
-                                <ArrowRight
-                                    size={16}
-                                />
-                            </button>
+                            <span className="botanical-panel-heading-icon botanical-heading-icon-orange"><TrendingUp size={20} /></span>
                         </div>
 
-
-                        <div className="dashboard-table-wrapper">
-                            <table className="dashboard-modern-table">
-                                <thead>
-                                    <tr>
-                                        <th>
-                                            Product
-                                        </th>
-
-                                        <th>
-                                            Batch
-                                        </th>
-
-                                        <th>
-                                            Quantity
-                                        </th>
-
-                                        <th>
-                                            Expiry
-                                        </th>
-
-                                        <th>
-                                            Status
-                                        </th>
-                                    </tr>
-                                </thead>
-
-                                <tbody>
-                                    {inventory
-                                        .slice(
-                                            0,
-                                            5
-                                        )
-                                        .map(
-                                            (
-                                                item
-                                            ) => {
-                                                const status =
-                                                    getInventoryStatus(
-                                                        item
-                                                    );
-
-                                                return (
-                                                    <tr
-                                                        key={
-                                                            item.inventory_id
-                                                        }
-                                                    >
-                                                        <td>
-                                                            <div className="dashboard-product-cell">
-                                                                <strong>
-                                                                    {
-                                                                        item.product_name
-                                                                    }
-                                                                </strong>
-
-                                                                <span>
-                                                                    {
-                                                                        item.barcode
-                                                                    }
-                                                                </span>
-                                                            </div>
-                                                        </td>
-
-                                                        <td>
-                                                            {item.batch_number ||
-                                                                "N/A"}
-                                                        </td>
-
-                                                        <td>
-                                                            <strong>
-                                                                {
-                                                                    item.quantity
-                                                                }
-                                                            </strong>
-                                                        </td>
-
-                                                        <td>
-                                                            {formatDate(
-                                                                item.expiry_date
-                                                            )}
-                                                        </td>
-
-                                                        <td>
-                                                            <span
-                                                                className={`dashboard-status ${status.className}`}
-                                                            >
-                                                                {
-                                                                    status.label
-                                                                }
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            }
-                                        )}
-                                </tbody>
-                            </table>
+                        <div className="botanical-snapshot-list">
+                            <div className="botanical-snapshot-row">
+                                <span className="botanical-snapshot-icon snapshot-icon-green"><Package size={18} /></span>
+                                <div><strong>Product catalog</strong><span>Products registered in the system</span></div>
+                                <b>{loading ? "—" : formatNumber(summary?.total_products)}</b>
+                            </div>
+                            <div className="botanical-snapshot-row">
+                                <span className="botanical-snapshot-icon snapshot-icon-orange"><AlertTriangle size={18} /></span>
+                                <div><strong>Low-stock items</strong><span>Items at or below reorder level</span></div>
+                                <b>{loading ? "—" : formatNumber(summary?.low_stock_items)}</b>
+                            </div>
+                            <div className="botanical-snapshot-row">
+                                <span className="botanical-snapshot-icon snapshot-icon-sand"><Clock3 size={18} /></span>
+                                <div><strong>Expiring soon</strong><span>Items nearing their expiry date</span></div>
+                                <b>{loading ? "—" : formatNumber(summary?.expiring_items)}</b>
+                            </div>
                         </div>
-                    </section>
-                </>
+
+                        <button type="button" className="botanical-text-link" onClick={() => goTo("/reports")}>
+                            Open reports <ArrowRight size={15} />
+                        </button>
+                    </article>
+                </section>
             )}
 
-
-            <section className="dashboard-panel dashboard-table-panel">
-                <div className="dashboard-panel-header">
+            <section className="botanical-quick-actions-section">
+                <div className="botanical-section-title-row">
                     <div>
-                        <span className="dashboard-panel-eyebrow">
-                            Transaction Activity
-                        </span>
-
-                        <h2>
-                            Recent Sales
-                        </h2>
-
-                        <p>
-                            Latest completed
-                            transactions
-                            returned by the
-                            system.
-                        </p>
+                        <span className="botanical-panel-eyebrow">Shortcuts</span>
+                        <h2>Quick actions</h2>
                     </div>
+                    <span className="botanical-section-note">Jump straight into your workflow</span>
+                </div>
 
-                    <button
-                        type="button"
-                        className="dashboard-link-button"
-                        onClick={() => {
-                            window.location.href =
-                                "/sales";
-                        }}
-                    >
-                        View Sales
+                <div className={`botanical-quick-actions ${canManage ? "" : "botanical-quick-actions-cashier"}`}>
+                    {quickActions.map((action) => {
+                        const Icon = action.icon;
+                        return (
+                            <button
+                                type="button"
+                                className="botanical-quick-action"
+                                key={action.path}
+                                onClick={() => goTo(action.path)}
+                            >
+                                <span className={`botanical-quick-action-icon tone-${action.tone}`}><Icon size={21} /></span>
+                                <span className="botanical-quick-action-copy"><strong>{action.label}</strong><small>{action.description}</small></span>
+                                <ArrowRight size={17} className="botanical-quick-action-arrow" />
+                            </button>
+                        );
+                    })}
+                </div>
+            </section>
 
-                        <ArrowRight
-                            size={16}
-                        />
+            <section className="botanical-panel botanical-recent-sales-panel">
+                <div className="botanical-panel-heading botanical-panel-heading-with-action">
+                    <div>
+                        <span className="botanical-panel-eyebrow">Latest activity</span>
+                        <h2>Recent sales</h2>
+                        <p>Most recent sales records returned by the system.</p>
+                    </div>
+                    <button type="button" className="botanical-outline-button" onClick={() => goTo("/sales")}>
+                        Open POS <ArrowRight size={15} />
                     </button>
                 </div>
 
-
-                {recentSales.length ===
-                0 ? (
-                    <div className="dashboard-empty-state">
-                        <ShoppingBag
-                            size={36}
-                            strokeWidth={1.5}
-                        />
-
-                        <strong>
-                            No sales recorded
-                        </strong>
-
-                        <span>
-                            Completed
-                            transactions will
-                            appear here.
-                        </span>
+                {loading ? (
+                    <div className="botanical-panel-loading">Loading recent sales…</div>
+                ) : recentSales.length === 0 ? (
+                    <div className="botanical-panel-empty">
+                        <ShoppingCart size={28} />
+                        <strong>No sales recorded yet</strong>
+                        <span>Completed transactions will appear in this table.</span>
                     </div>
                 ) : (
-                    <div className="dashboard-table-wrapper">
-                        <table className="dashboard-modern-table">
+                    <div className="botanical-table-wrap">
+                        <table className="botanical-table">
                             <thead>
                                 <tr>
-                                    <th>
-                                        Sale ID
-                                    </th>
-
-                                    <th>
-                                        Cashier
-                                    </th>
-
-                                    <th>
-                                        Payment
-                                    </th>
-
-                                    <th>
-                                        Date
-                                    </th>
-
-                                    <th>
-                                        Total
-                                    </th>
+                                    <th>Transaction</th>
+                                    <th>Cashier</th>
+                                    <th>Payment method</th>
+                                    <th>Date</th>
+                                    <th className="botanical-table-number">Total</th>
                                 </tr>
                             </thead>
-
                             <tbody>
-                                {recentSales
-                                    .slice(
-                                        0,
-                                        5
-                                    )
-                                    .map(
-                                        (
-                                            sale
-                                        ) => (
-                                            <tr
-                                                key={
-                                                    sale.sale_id
-                                                }
-                                            >
-                                                <td>
-                                                    <strong className="dashboard-sale-id">
-                                                        #
-                                                        {
-                                                            sale.sale_id
-                                                        }
-                                                    </strong>
-                                                </td>
-
-                                                <td>
-                                                    {sale.full_name ||
-                                                        "N/A"}
-                                                </td>
-
-                                                <td>
-                                                    <span className="dashboard-payment-badge">
-                                                        {
-                                                            sale.payment_method
-                                                        }
-                                                    </span>
-                                                </td>
-
-                                                <td>
-                                                    {formatDateTime(
-                                                        sale.sale_date
-                                                    )}
-                                                </td>
-
-                                                <td>
-                                                    <strong className="dashboard-sale-total">
-                                                        {formatCurrency(
-                                                            sale.total_amount
-                                                        )}
-                                                    </strong>
-                                                </td>
-                                            </tr>
-                                        )
-                                    )}
+                                {recentSales.slice(0, 6).map((sale, index) => (
+                                    <tr key={sale.sale_id ?? `${sale.sale_date}-${index}`}>
+                                        <td>
+                                            <div className="botanical-transaction-cell">
+                                                <span className="botanical-transaction-icon"><ShoppingBag size={16} /></span>
+                                                <span><strong>Sale #{sale.sale_id ?? "—"}</strong><small>Completed transaction</small></span>
+                                            </div>
+                                        </td>
+                                        <td>{sale.full_name || sale.username || "Staff"}</td>
+                                        <td><span className="botanical-payment-chip">{String(sale.payment_method || "—").replace(/_/g, " ")}</span></td>
+                                        <td>{formatDate(sale.sale_date, true)}</td>
+                                        <td className="botanical-table-number botanical-sale-total">{formatCurrency(sale.total_amount)}</td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>
                 )}
             </section>
-        </div>
+
+            {canManage && (
+                <section className="botanical-panel botanical-recent-inventory-panel">
+                    <div className="botanical-panel-heading botanical-panel-heading-with-action">
+                        <div>
+                            <span className="botanical-panel-eyebrow">Stock overview</span>
+                            <h2>Recent inventory batches</h2>
+                            <p>Latest inventory records currently available.</p>
+                        </div>
+                        <button type="button" className="botanical-outline-button" onClick={() => goTo("/inventory")}>
+                            View inventory <ArrowRight size={15} />
+                        </button>
+                    </div>
+
+                    {loading ? (
+                        <div className="botanical-panel-loading">Loading inventory…</div>
+                    ) : inventory.length === 0 ? (
+                        <div className="botanical-panel-empty">
+                            <Boxes size={28} />
+                            <strong>No inventory batches found</strong>
+                            <span>Add received stock from the Inventory page.</span>
+                        </div>
+                    ) : (
+                        <div className="botanical-table-wrap">
+                            <table className="botanical-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Batch</th>
+                                        <th>Quantity</th>
+                                        <th>Expiry date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {inventory.slice(0, 5).map((item) => {
+                                        const status = getInventoryStatus(item);
+                                        return (
+                                            <tr key={item.inventory_id}>
+                                                <td>
+                                                    <div className="botanical-product-cell">
+                                                        <span className="botanical-product-icon"><Package size={17} /></span>
+                                                        <span><strong>{item.product_name || "Unnamed product"}</strong><small>{item.barcode || "No barcode"}</small></span>
+                                                    </div>
+                                                </td>
+                                                <td>{item.batch_number || "—"}</td>
+                                                <td><strong>{formatNumber(item.quantity)}</strong></td>
+                                                <td>{formatDate(item.expiry_date)}</td>
+                                                <td><span className={`botanical-status-chip status-${status}`}>{STATUS_LABELS[status]}</span></td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </section>
+            )}
+
+            <footer className="botanical-dashboard-footer">
+                <span><Leaf size={14} /> Inventory Sales Management</span>
+                <span>Keep every item and transaction in view.</span>
+            </footer>
+        </main>
     );
 }
 

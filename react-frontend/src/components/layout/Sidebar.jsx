@@ -5,274 +5,136 @@ import {
     LayoutDashboard,
     LogOut,
     PackageSearch,
-    ShoppingCart,
-    Sparkles
+    ShoppingCart
 } from "lucide-react";
+import { API_BASE_URL } from "../../services/api.js";
+import ISA from "../../assets/ISA.png";
 
-const API_BASE_URL =
-    "http://localhost:5000";
+function readStoredUser() {
+    try {
+        const storedUser = localStorage.getItem("user");
+        return storedUser ? JSON.parse(storedUser) : null;
+    } catch (error) {
+        console.error("Unable to read stored user:", error);
+        localStorage.removeItem("user");
+        return null;
+    }
+}
 
-function Sidebar() {
-    const userData =
-        localStorage.getItem("user");
-
-    const user = userData
-        ? JSON.parse(userData)
-        : null;
-
-    const currentPath =
-        window.location.pathname;
-
-    const canManage =
-        user &&
-        [
-            "admin",
-            "owner",
-            "manager"
-        ].includes(user.role);
+function Sidebar({ isOpen = false, onNavigate = () => { } }) {
+    const user = readStoredUser();
+    const currentPath = window.location.pathname;
+    const canManage = user && ["admin", "owner", "manager"].includes(user.role);
 
     const navigationItems = [
-        {
-            label: "Dashboard",
-            path: "/dashboard",
-            icon: LayoutDashboard,
-            visible: true
-        },
-        {
-            label: "Products",
-            path: "/products",
-            icon: PackageSearch,
-            visible: canManage
-        },
-        {
-            label: "Inventory",
-            path: "/inventory",
-            icon: Boxes,
-            visible: canManage
-        },
-        {
-            label: "Sales",
-            path: "/sales",
-            icon: ShoppingCart,
-            visible: true
-        },
-        {
-            label: "Reports",
-            path: "/reports",
-            icon: ChartNoAxesCombined,
-            visible: canManage
-        }
+        { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, visible: true },
+        { label: "Products", path: "/products", icon: PackageSearch, visible: canManage },
+        { label: "Inventory", path: "/inventory", icon: Boxes, visible: canManage },
+        { label: "Sales / POS", path: "/sales", icon: ShoppingCart, visible: true },
+        { label: "Reports & Analytics", path: "/reports", icon: ChartNoAxesCombined, visible: canManage }
     ];
 
     const navigate = (path) => {
-        if (currentPath === path) {
-            return;
+        onNavigate();
+        if (currentPath !== path) {
+            window.location.assign(path);
         }
-
-        window.location.href = path;
     };
 
     const handleLogout = async () => {
         try {
-            await fetch(
-                `${API_BASE_URL}/logout`,
-                {
-                    method: "POST",
-                    credentials: "include"
-                }
-            );
+            await fetch(`${API_BASE_URL}/logout`, {
+                method: "POST",
+                credentials: "include"
+            });
         } catch (error) {
-            console.error(
-                "Logout request failed:",
-                error
-            );
+            // Clear the local session even if the backend cannot be reached.
+            console.error("Logout request failed:", error);
+        } finally {
+            localStorage.removeItem("user");
+            window.location.assign("/");
         }
-
-        localStorage.removeItem("user");
-
-        window.location.href = "/";
     };
 
     const getInitials = () => {
-        if (!user?.full_name) {
-            return "U";
-        }
-
-        const nameParts =
-            user.full_name
-                .trim()
-                .split(/\s+/);
-
-        if (nameParts.length === 1) {
-            return nameParts[0]
-                .charAt(0)
-                .toUpperCase();
-        }
-
-        return (
-            nameParts[0].charAt(0) +
-            nameParts[
-                nameParts.length - 1
-            ].charAt(0)
-        ).toUpperCase();
+        const name = user?.full_name?.trim();
+        if (!name) return "U";
+        const parts = name.split(/\s+/);
+        if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+        return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
     };
 
+    const roleLabel = user?.role
+        ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+        : "Account";
+
     return (
-        <aside className="sidebar modern-sidebar">
-            <div className="sidebar-background-glow sidebar-glow-one" />
-            <div className="sidebar-background-glow sidebar-glow-two" />
-
-            <div className="sidebar-brand">
-                <div className="sidebar-logo">
-                    <div className="sidebar-logo-shape">
-                        <Sparkles
-                            size={21}
-                            strokeWidth={2}
-                        />
-                    </div>
-
-                    <div className="sidebar-logo-glow" />
-                </div>
-
-                <div className="sidebar-brand-copy">
-                    <h2>ISA</h2>
-
-                    <p>
-                        Inventory Sales Analytics
-                    </p>
-                </div>
+        <aside className={`sage-sidebar${isOpen ? " is-open" : ""}`} aria-label="Main navigation">
+            <div className="sage-sidebar-brand">
+                <span className="sage-sidebar-brand-mark" aria-hidden="true">
+                    <img src={ISA} alt="Inventory Sales Analytics" />
+                </span>
+                <span className="sage-sidebar-brand-copy">
+                    <strong>Inventory &amp; Sales</strong>
+                    <span>Management workspace</span>
+                </span>
             </div>
 
-            <div className="sidebar-divider" />
+            <div className="sage-sidebar-divider" />
 
-            <div className="sidebar-navigation-area">
-                <p className="sidebar-section-label">
-                    Workspace
-                </p>
+            <div className="sage-sidebar-navigation-area">
+                <p className="sage-sidebar-section-label">WORKSPACE</p>
 
-                <nav className="sidebar-nav modern-sidebar-nav">
-                    {navigationItems
-                        .filter(
-                            (item) =>
-                                item.visible
-                        )
-                        .map((item) => {
-                            const Icon =
-                                item.icon;
+                <nav className="sage-sidebar-nav">
+                    {navigationItems.filter((item) => item.visible).map((item) => {
+                        const Icon = item.icon;
+                        const isActive = currentPath === item.path;
 
-                            const isActive =
-                                currentPath ===
-                                item.path;
-
-                            return (
-                                <button
-                                    type="button"
-                                    key={
-                                        item.path
-                                    }
-                                    className={
-                                        isActive
-                                            ? "sidebar-nav-item active"
-                                            : "sidebar-nav-item"
-                                    }
-                                    onClick={() =>
-                                        navigate(
-                                            item.path
-                                        )
-                                    }
-                                    aria-current={
-                                        isActive
-                                            ? "page"
-                                            : undefined
-                                    }
-                                >
-                                    <span className="sidebar-nav-icon">
-                                        <Icon
-                                            size={18}
-                                            strokeWidth={
-                                                1.9
-                                            }
-                                        />
-                                    </span>
-
-                                    <span className="sidebar-nav-label">
-                                        {
-                                            item.label
-                                        }
-                                    </span>
-
-                                    <ChevronRight
-                                        className="sidebar-nav-arrow"
-                                        size={15}
-                                        strokeWidth={
-                                            2
-                                        }
-                                    />
-                                </button>
-                            );
-                        })}
+                        return (
+                            <button
+                                type="button"
+                                key={item.path}
+                                className={`sage-sidebar-nav-item${isActive ? " active" : ""}`}
+                                onClick={() => navigate(item.path)}
+                                aria-current={isActive ? "page" : undefined}
+                                title={item.label}
+                            >
+                                <span className="sage-sidebar-nav-icon" aria-hidden="true">
+                                    <Icon size={19} strokeWidth={1.9} />
+                                </span>
+                                <span className="sage-sidebar-nav-label">{item.label}</span>
+                                <ChevronRight className="sage-sidebar-nav-arrow" size={16} strokeWidth={1.9} aria-hidden="true" />
+                            </button>
+                        );
+                    })}
                 </nav>
             </div>
 
-            <div className="sidebar-bottom">
-                <div className="sidebar-system-card">
-                    <div className="sidebar-system-icon">
-                        <PackageSearch
-                            size={17}
-                            strokeWidth={2}
-                        />
-                    </div>
-
+            <div className="sage-sidebar-bottom">
+                <div className="sage-sidebar-note">
+                    <span className="sage-sidebar-note-icon" aria-hidden="true">
+                        <PackageSearch size={18} strokeWidth={1.9} />
+                    </span>
                     <div>
-                        <strong>
-                            System Online
-                        </strong>
-
-                        <span>
-                            Inventory services
-                            active
-                        </span>
+                        <strong>Stay in control</strong>
+                        <span>Stock, sales, and insights in one place.</span>
                     </div>
-
-                    <span className="sidebar-online-dot" />
                 </div>
 
-                <div className="sidebar-divider sidebar-bottom-divider" />
+                <div className="sage-sidebar-divider sage-sidebar-bottom-divider" />
 
-                <div className="sidebar-user modern-sidebar-user">
-                    <div className="sidebar-user-profile">
-                        <div className="sidebar-avatar">
-                            {getInitials()}
-                        </div>
-
-                        <div className="sidebar-user-info">
-                            <p>
-                                {user?.full_name ||
-                                    "User"}
-                            </p>
-
-                            <span>
-                                {user?.role ||
-                                    "Account"}
-                            </span>
-                        </div>
+                <div className="sage-sidebar-user">
+                    <div className="sage-sidebar-user-profile">
+                        <span className="sage-sidebar-avatar" aria-hidden="true">{getInitials()}</span>
+                        <span className="sage-sidebar-user-info">
+                            <strong title={user?.full_name || "User"}>{user?.full_name || "User"}</strong>
+                            <span>{roleLabel}</span>
+                        </span>
                     </div>
 
-                    <button
-                        type="button"
-                        className="sidebar-logout-button"
-                        onClick={
-                            handleLogout
-                        }
-                    >
-                        <LogOut
-                            size={17}
-                            strokeWidth={2}
-                        />
-
-                        <span>
-                            Logout
-                        </span>
+                    <button type="button" className="sage-sidebar-logout" onClick={handleLogout}>
+                        <LogOut size={17} strokeWidth={1.9} />
+                        <span>Log out</span>
                     </button>
                 </div>
             </div>
