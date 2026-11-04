@@ -1,16 +1,24 @@
+
 from flask import Blueprint, request, jsonify, session
 from config.database import get_db_connection
+from werkzeug.security import generate_password_hash, check_password_hash
 
 auth_bp = Blueprint("auth", __name__)
 
 
+def verify_password(stored_password, entered_password):
+    if stored_password.startswith(("scrypt:", "pbkdf2:")):
+        return check_password_hash(stored_password, entered_password)
+
+    return stored_password == entered_password
+
+
 @auth_bp.route("/login", methods=["POST"])
 def login():
+    data = request.get_json(silent=True) or {}
 
-    data = request.get_json()
-
-    username = data.get("username")
-    password = data.get("password")
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
 
     if not username or not password:
         return jsonify({
@@ -22,24 +30,16 @@ def login():
     cursor = None
 
     try:
-
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
-        query = """
-            SELECT
-                user_id,
-                username,
-                password,
-                full_name,
-                role,
-                status
+        cursor.execute("""
+            SELECT user_id, username, password, full_name, role, status
             FROM users
             WHERE username = %s
             LIMIT 1
-        """
+        """, (username,))
 
-        cursor.execute(query, (username,))
         user = cursor.fetchone()
 
         if not user:
@@ -54,14 +54,24 @@ def login():
                 "message": "This account is inactive."
             }), 403
 
-        if user["password"] != password:
+        if not verify_password(user["password"], password):
             return jsonify({
                 "success": False,
                 "message": "Invalid username or password."
             }), 401
 
-        session.clear()
+        if not user["password"].startswith(("scrypt:", "pbkdf2:")):
+            cursor.execute("""
+                UPDATE users
+                SET password = %s
+                WHERE user_id = %s
+            """, (
+                generate_password_hash(password),
+                user["user_id"]
+            ))
+            connection.commit()
 
+        session.clear()
         session["user_id"] = user["user_id"]
         session["username"] = user["username"]
         session["full_name"] = user["full_name"]
@@ -80,26 +90,169 @@ def login():
         }), 200
 
     except Exception as e:
-
         print("Login error:", e)
-
         return jsonify({
             "success": False,
             "message": "Unable to process login."
         }), 500
 
     finally:
-
         if cursor:
             cursor.close()
+        if connection:
+            connection.close()
 
+
+@auth_bp.route("/profile/update", methods=["PUT"])
+def update_profile():
+    if "user_id" not in session:
+        return jsonify({
+            "success": False,
+            "message": "Not authenticated."
+        }), 401
+
+    data = request.get_json(silent=True) or {}
+
+    full_name = data.get("full_name", "").strip()
+    username = data.get("username", "").strip()
+    current_password = data.get("current_password", "")
+    new_password = data.get("new_password", "")
+
+    if not full_name or not username:
+        return jsonify({
+            "success": False,
+            "message": "Full name and username are required."
+        }), 400
+
+    if len(full_name) > 100 or len(username) > 50:
+        return jsonify({
+            "success": False,
+            "message": "Full name or username is too long."
+        }), 400
+
+    if new_password and len(new_password) < 8:
+        return jsonify({
+            "success": False,
+            "message": "New password must be at least 8 characters."
+        }), 400
+
+    if new_password and not current_password:
+        return jsonify({
+            "success": False,
+            "message": "Enter your current password to change it."
+        }), 400
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        user_id = session["user_id"]
+
+        cursor.execute("""
+            SELECT user_id, username, password, full_name, role, status
+            FROM users
+            WHERE user_id = %s
+            LIMIT 1
+        """, (user_id,))
+
+        user = cursor.fetchone()
+
+        if not user or user["status"] != "active":
+            session.clear()
+            return jsonify({
+                "success": False,
+                "message": "Your account is unavailable. Please log in again."
+            }), 401
+
+        if new_password and not verify_password(
+            user["password"],
+            current_password
+        ):
+            return jsonify({
+                "success": False,
+                "message": "Your current password is incorrect."
+            }), 400
+
+        cursor.execute("""
+            SELECT user_id
+            FROM users
+            WHERE username = %s AND user_id != %s
+            LIMIT 1
+        """, (username, user_id))
+
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            return jsonify({
+                "success": False,
+                "message": "That username is already being used."
+            }), 409
+
+        if new_password:
+            cursor.execute("""
+                UPDATE users
+                SET full_name = %s,
+                    username = %s,
+                    password = %s
+                WHERE user_id = %s
+            """, (
+                full_name,
+                username,
+                generate_password_hash(new_password),
+                user_id
+            ))
+        else:
+            cursor.execute("""
+                UPDATE users
+                SET full_name = %s,
+                    username = %s
+                WHERE user_id = %s
+            """, (
+                full_name,
+                username,
+                user_id
+            ))
+
+        connection.commit()
+
+        session["username"] = username
+        session["full_name"] = full_name
+
+        return jsonify({
+            "success": True,
+            "message": "Profile updated successfully.",
+            "user": {
+                "user_id": user_id,
+                "username": username,
+                "full_name": full_name,
+                "role": user["role"],
+                "status": user["status"]
+            }
+        }), 200
+
+    except Exception as e:
+        if connection:
+            connection.rollback()
+
+        print("Profile update error:", e)
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to update your profile."
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
         if connection:
             connection.close()
 
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
-
     session.clear()
 
     return jsonify({
@@ -110,7 +263,6 @@ def logout():
 
 @auth_bp.route("/me", methods=["GET"])
 def get_current_user():
-
     if "user_id" not in session:
         return jsonify({
             "success": False,

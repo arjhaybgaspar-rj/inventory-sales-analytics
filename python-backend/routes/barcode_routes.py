@@ -6,7 +6,7 @@ import requests
 barcode_bp = Blueprint("barcode", __name__)
 
 @barcode_bp.route("/api/barcode/lookup", methods=["GET"])
-@login_required(["admin", "owner", "manager", "cashier"])
+@login_required(["owner", "manager", "cashier"])
 def lookup_barcode():
     barcode = request.args.get("barcode", "").strip()
 

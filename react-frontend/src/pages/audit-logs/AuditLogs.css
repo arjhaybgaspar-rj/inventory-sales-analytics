@@ -1,0 +1,250 @@
+
+.audit-page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    color: #263b32;
+}
+
+.audit-header,
+.audit-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.audit-eyebrow {
+    color: #72927f;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+}
+
+.audit-header h1 {
+    margin: 7px 0;
+    font-size: 29px;
+    font-weight: 700;
+}
+
+.audit-header p,
+.audit-table-header p {
+    margin: 0;
+    color: #84948b;
+    font-size: 13px;
+}
+
+.audit-refresh-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border: 1px solid #dce7df;
+    border-radius: 8px;
+    background: white;
+    color: #537d65;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.audit-refresh-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.audit-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: fit-content;
+    min-width: 250px;
+    padding: 19px 23px;
+    border: 1px solid #e5ede7;
+    border-radius: 13px;
+    background: white;
+}
+
+.audit-stat-icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 11px;
+    background: #eaf2ec;
+    color: #537d65;
+}
+
+.audit-stat-card span {
+    display: block;
+    color: #87968d;
+    font-size: 12px;
+}
+
+.audit-stat-card strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 25px;
+}
+
+.audit-table-card {
+    overflow: hidden;
+    border: 1px solid #e5ede7;
+    border-radius: 13px;
+    background: white;
+}
+
+.audit-table-header {
+    padding: 21px 23px;
+    border-bottom: 1px solid #edf1ee;
+}
+
+.audit-table-header h2 {
+    margin: 0 0 5px;
+    font-size: 17px;
+}
+
+.audit-toolbar {
+    padding: 16px 22px;
+}
+
+.audit-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 390px;
+    padding: 10px 12px;
+    border: 1px solid #e1e9e3;
+    border-radius: 8px;
+    color: #87968d;
+}
+
+.audit-search input {
+    width: 100%;
+    border: none;
+    outline: none;
+    color: #263b32;
+    font-size: 13px;
+}
+
+.audit-table-wrapper {
+    overflow-x: auto;
+}
+
+.audit-table {
+    width: 100%;
+    border-collapse: collapse;
+    white-space: nowrap;
+}
+
+.audit-table th {
+    padding: 13px 17px;
+    background: #f3f7f4;
+    color: #71847a;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.audit-table td {
+    padding: 15px 17px;
+    border-bottom: 1px solid #edf1ee;
+    color: #61736a;
+    font-size: 13px;
+}
+
+.audit-table tbody tr:nth-child(even) {
+    background: #fbfdfb;
+}
+
+.audit-table td strong,
+.audit-table td small {
+    display: block;
+}
+
+.audit-table td small {
+    margin-top: 4px;
+    color: #91a097;
+    font-size: 11px;
+}
+
+.audit-role {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 20px;
+    background: #edf2ef;
+    color: #647a6c;
+    font-size: 11px;
+    text-transform: capitalize;
+}
+
+.audit-role.admin {
+    background: #eee9f8;
+    color: #7656a5;
+}
+
+.audit-role.manager {
+    background: #e7f2e9;
+    color: #4b8058;
+}
+
+.audit-role.owner {
+    background: #e8effa;
+    color: #4c6f9c;
+}
+
+.audit-role.cashier {
+    background: #fff2df;
+    color: #a77837;
+}
+
+.audit-action {
+    color: #52765f;
+    font-weight: 600;
+}
+
+.audit-description {
+    min-width: 230px;
+    max-width: 380px;
+    white-space: normal;
+}
+
+.audit-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #788a7f;
+    font-size: 12px;
+}
+
+.audit-empty {
+    padding: 35px !important;
+    color: #89968e !important;
+    text-align: center;
+}
+
+.audit-footer {
+    padding: 14px 22px;
+    border-top: 1px solid #edf1ee;
+    color: #87968d;
+    font-size: 12px;
+}
+
+.audit-alert {
+    padding: 12px 15px;
+    border-radius: 8px;
+    background: #fff0f0;
+    color: #a94f4f;
+    font-size: 13px;
+}
+
+@media (max-width: 650px) {
+    .audit-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .audit-stat-card {
+        width: 100%;
+    }
+}

@@ -1,3 +1,4 @@
+
 import {
     Boxes,
     ChartNoAxesCombined,
@@ -5,8 +6,13 @@ import {
     LayoutDashboard,
     LogOut,
     PackageSearch,
-    ShoppingCart
+    ShoppingCart,
+    UserRound,
+    Pencil,
+    ClipboardList,
+    Users
 } from "lucide-react";
+
 import { API_BASE_URL } from "../../services/api.js";
 import ISA from "../../assets/ISA.png";
 
@@ -21,21 +27,47 @@ function readStoredUser() {
     }
 }
 
-function Sidebar({ isOpen = false, onNavigate = () => { } }) {
+function Sidebar({ isOpen = false, onNavigate = () => {} }) {
     const user = readStoredUser();
     const currentPath = window.location.pathname;
-    const canManage = user && ["admin", "owner", "manager"].includes(user.role);
+    const role = user?.role?.toLowerCase();
 
-    const navigationItems = [
-        { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard, visible: true },
-        { label: "Products", path: "/products", icon: PackageSearch, visible: canManage },
-        { label: "Inventory", path: "/inventory", icon: Boxes, visible: canManage },
-        { label: "Sales / POS", path: "/sales", icon: ShoppingCart, visible: true },
-        { label: "Reports & Analytics", path: "/reports", icon: ChartNoAxesCombined, visible: canManage }
+    const managerNavigation = [
+        { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+        { label: "Products", path: "/products", icon: PackageSearch },
+        { label: "Inventory", path: "/inventory", icon: Boxes },
+        { label: "Sales / POS", path: "/sales", icon: ShoppingCart },
+        { label: "Reports & Analytics", path: "/reports", icon: ChartNoAxesCombined }
     ];
+
+    const adminNavigation = [
+        { label: "Reports & Analytics", path: "/reports", icon: ChartNoAxesCombined },
+        { label: "Audit Logs", path: "/audit-logs", icon: ClipboardList },
+        { label: "User Management", path: "/users", icon: Users }
+    ];
+
+    const cashierNavigation = [
+        { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+        { label: "Sales / POS", path: "/sales", icon: ShoppingCart }
+    ];
+
+    const ownerNavigation = [
+        { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+        { label: "Products", path: "/products", icon: PackageSearch },
+        { label: "Inventory", path: "/inventory", icon: Boxes },
+        { label: "Sales / POS", path: "/sales", icon: ShoppingCart },
+        { label: "Reports & Analytics", path: "/reports", icon: ChartNoAxesCombined }
+    ];
+
+    const navigationItems =
+        role === "admin" ? adminNavigation :
+        role === "manager" ? managerNavigation :
+        role === "cashier" ? cashierNavigation :
+        role === "owner" ? ownerNavigation : [];
 
     const navigate = (path) => {
         onNavigate();
+
         if (currentPath !== path) {
             window.location.assign(path);
         }
@@ -48,7 +80,6 @@ function Sidebar({ isOpen = false, onNavigate = () => { } }) {
                 credentials: "include"
             });
         } catch (error) {
-            // Clear the local session even if the backend cannot be reached.
             console.error("Logout request failed:", error);
         } finally {
             localStorage.removeItem("user");
@@ -58,22 +89,32 @@ function Sidebar({ isOpen = false, onNavigate = () => { } }) {
 
     const getInitials = () => {
         const name = user?.full_name?.trim();
+
         if (!name) return "U";
+
         const parts = name.split(/\s+/);
-        if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+
+        if (parts.length === 1) {
+            return parts[0].charAt(0).toUpperCase();
+        }
+
         return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
     };
 
-    const roleLabel = user?.role
-        ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+    const roleLabel = role
+        ? role.charAt(0).toUpperCase() + role.slice(1)
         : "Account";
 
     return (
-        <aside className={`sage-sidebar${isOpen ? " is-open" : ""}`} aria-label="Main navigation">
+        <aside
+            className={`sage-sidebar${isOpen ? " is-open" : ""}`}
+            aria-label="Main navigation"
+        >
             <div className="sage-sidebar-brand">
                 <span className="sage-sidebar-brand-mark" aria-hidden="true">
                     <img src={ISA} alt="Inventory Sales Analytics" />
                 </span>
+
                 <span className="sage-sidebar-brand-copy">
                     <strong>Inventory &amp; Sales</strong>
                     <span>Management workspace</span>
@@ -83,10 +124,12 @@ function Sidebar({ isOpen = false, onNavigate = () => { } }) {
             <div className="sage-sidebar-divider" />
 
             <div className="sage-sidebar-navigation-area">
-                <p className="sage-sidebar-section-label">WORKSPACE</p>
+                <p className="sage-sidebar-section-label">
+                    {role === "admin" ? "ADMINISTRATION" : "WORKSPACE"}
+                </p>
 
                 <nav className="sage-sidebar-nav">
-                    {navigationItems.filter((item) => item.visible).map((item) => {
+                    {navigationItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = currentPath === item.path;
 
@@ -102,8 +145,17 @@ function Sidebar({ isOpen = false, onNavigate = () => { } }) {
                                 <span className="sage-sidebar-nav-icon" aria-hidden="true">
                                     <Icon size={19} strokeWidth={1.9} />
                                 </span>
-                                <span className="sage-sidebar-nav-label">{item.label}</span>
-                                <ChevronRight className="sage-sidebar-nav-arrow" size={16} strokeWidth={1.9} aria-hidden="true" />
+
+                                <span className="sage-sidebar-nav-label">
+                                    {item.label}
+                                </span>
+
+                                <ChevronRight
+                                    className="sage-sidebar-nav-arrow"
+                                    size={16}
+                                    strokeWidth={1.9}
+                                    aria-hidden="true"
+                                />
                             </button>
                         );
                     })}
@@ -115,6 +167,7 @@ function Sidebar({ isOpen = false, onNavigate = () => { } }) {
                     <span className="sage-sidebar-note-icon" aria-hidden="true">
                         <PackageSearch size={18} strokeWidth={1.9} />
                     </span>
+
                     <div>
                         <strong>Stay in control</strong>
                         <span>Stock, sales, and insights in one place.</span>
@@ -124,15 +177,37 @@ function Sidebar({ isOpen = false, onNavigate = () => { } }) {
                 <div className="sage-sidebar-divider sage-sidebar-bottom-divider" />
 
                 <div className="sage-sidebar-user">
-                    <div className="sage-sidebar-user-profile">
-                        <span className="sage-sidebar-avatar" aria-hidden="true">{getInitials()}</span>
+                    <button
+                        type="button"
+                        className={`sage-sidebar-user-profile${currentPath === "/profile" ? " active" : ""}`}
+                        onClick={() => navigate("/profile")}
+                        title="View and edit your profile"
+                        aria-current={currentPath === "/profile" ? "page" : undefined}
+                    >
+                        <span className="sage-sidebar-avatar" aria-hidden="true">
+                            {getInitials()}
+                        </span>
+
                         <span className="sage-sidebar-user-info">
-                            <strong title={user?.full_name || "User"}>{user?.full_name || "User"}</strong>
+                            <strong title={user?.full_name || "User"}>
+                                {user?.full_name || "User"}
+                            </strong>
+
                             <span>{roleLabel}</span>
                         </span>
-                    </div>
 
-                    <button type="button" className="sage-sidebar-logout" onClick={handleLogout}>
+                        <Pencil
+                            className="sage-sidebar-profile-edit"
+                            size={15}
+                            aria-hidden="true"
+                        />
+                    </button>
+
+                    <button
+                        type="button"
+                        className="sage-sidebar-logout"
+                        onClick={handleLogout}
+                    >
                         <LogOut size={17} strokeWidth={1.9} />
                         <span>Log out</span>
                     </button>

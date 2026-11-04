@@ -1,3 +1,4 @@
+
 from flask import Flask, session
 from flask_cors import CORS
 
@@ -7,6 +8,8 @@ from routes.auth_routes import auth_bp
 from routes.inventory_routes import inventory_bp
 from routes.sales_routes import sales_bp
 from routes.report_routes import report_bp
+from routes.user_management_routes import user_management_bp
+from routes.audit_routes import audit_bp
 
 app = Flask(__name__)
 
@@ -15,15 +18,20 @@ app.secret_key = "inventory-sales-analytics-secret-key"
 CORS(
     app,
     supports_credentials=True,
-    origins=["http://localhost:5173"]
+    origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175"
+    ]
 )
-
 app.register_blueprint(barcode_bp)
 app.register_blueprint(product_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(inventory_bp)
 app.register_blueprint(sales_bp)
 app.register_blueprint(report_bp)
+app.register_blueprint(user_management_bp)
+app.register_blueprint(audit_bp)
 
 
 @app.route("/")

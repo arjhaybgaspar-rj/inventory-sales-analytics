@@ -2622,3 +2622,134 @@
         transition-duration: .01ms !important;
     }
 }
+.sales-camera-scanner {
+    margin-bottom: 20px;
+    padding: 17px;
+    background: rgba(231, 238, 225, 0.55);
+    border: 1px solid #dce5d7;
+    border-radius: 14px;
+}
+
+.sales-camera-scanner-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.sales-camera-scanner-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.sales-camera-scanner-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    color: #315b46;
+    background: #e1eadb;
+    border-radius: 11px;
+}
+
+.sales-camera-scanner-info strong {
+    display: block;
+    color: #263b2d;
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.sales-camera-scanner-info span {
+    display: block;
+    margin-top: 4px;
+    color: #687765;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.sales-camera-start,
+.sales-camera-stop {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 39px;
+    padding: 9px 13px;
+    flex-shrink: 0;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 750;
+    cursor: pointer;
+    transition: 160ms ease;
+}
+
+.sales-camera-start {
+    color: #fffdf7;
+    background: #416d4e;
+    border: 1px solid #416d4e;
+}
+
+.sales-camera-start:hover:not(:disabled) {
+    background: #315b46;
+    transform: translateY(-1px);
+}
+
+.sales-camera-start:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.sales-camera-stop {
+    color: #b76545;
+    background: #fff1e7;
+    border: 1px solid #f2d4c3;
+}
+
+.sales-camera-stop:hover {
+    color: white;
+    background: #b76545;
+}
+
+.sales-camera-view {
+    position: relative;
+    margin-top: 16px;
+    overflow: hidden;
+    background: #18271c;
+    border: 1px solid #c5d3bf;
+    border-radius: 12px;
+}
+
+.sales-camera-view[hidden] {
+    display: none;
+}
+
+.sales-camera-view video {
+    display: block;
+    width: 100%;
+    max-height: 340px;
+    object-fit: cover;
+}
+
+.sales-camera-guide {
+    padding: 10px;
+    color: #fffdf7;
+    background: rgba(24, 39, 28, 0.82);
+    font-size: 12px;
+    text-align: center;
+}
+
+@media (max-width: 620px) {
+    .sales-camera-scanner-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .sales-camera-start,
+    .sales-camera-stop {
+        width: 100%;
+    }
+}

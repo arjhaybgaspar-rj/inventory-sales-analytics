@@ -6,7 +6,7 @@ def get_db_connection():
         host="localhost",
         user="root",
         password="",
-        database="inventory_sale_analytics"
+        database="inventory_analytics"
     )
 
     return connection

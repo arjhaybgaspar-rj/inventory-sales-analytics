@@ -1,7 +1,11 @@
+
 import {
     ArrowLeft,
     ShieldX
 } from "lucide-react";
+
+import Users from "./pages/users/users.jsx";
+import AuditLogs from "./pages/audit-logs/AuditLogs.jsx";
 
 import Dashboard from "./pages/dashboard/Dashboard.jsx";
 import Inventory from "./pages/inventory/Inventory.jsx";
@@ -9,195 +13,133 @@ import Products from "./pages/products/Products.jsx";
 import Reports from "./pages/reports/Reports.jsx";
 import Sales from "./pages/sales/Sales.jsx";
 
+import Profile from "./pages/profile/Profile.jsx";
+
 import Login from "./pages/login/Login.jsx";
 
 import Layout from "./components/Layout.jsx";
 
 import "./App.css";
 
-
 const ROUTES = {
     "/dashboard": {
         component: Dashboard,
-
-        roles: [
-            "admin",
-            "manager",
-            "cashier"
-        ]
+        roles: ["owner", "manager", "cashier"]
     },
 
     "/products": {
         component: Products,
-
-        roles: [
-            "admin",
-            "owner",
-            "manager"
-        ]
+        roles: ["owner", "manager"]
     },
 
     "/inventory": {
         component: Inventory,
-
-        roles: [
-            "admin",
-            "owner",
-            "manager"
-        ]
+        roles: ["owner", "manager"]
     },
 
     "/sales": {
         component: Sales,
-
-        roles: [
-            "admin",
-            "owner",
-            "manager",
-            "cashier"
-        ]
+        roles: ["owner", "manager", "cashier"]
     },
 
     "/reports": {
         component: Reports,
+        roles: ["admin", "owner", "manager"]
+    },
 
-        roles: [
-            "admin",
-            "owner",
-            "manager"
-        ]
-    }
+    "/profile": {
+        component: Profile,
+        roles: ["admin", "owner", "manager", "cashier"]
+    },
+    "/users": {
+    component: Users,
+    roles: ["admin"]
+    },
+
+    "/audit-logs": {
+        component: AuditLogs,
+        roles: ["admin"]
+    },
 };
 
-
 function getStoredUser() {
-    const storedUser =
-        localStorage.getItem(
-            "user"
-        );
+    const storedUser = localStorage.getItem("user");
 
     if (!storedUser) {
         return null;
     }
 
     try {
-        return JSON.parse(
-            storedUser
-        );
+        return JSON.parse(storedUser);
     } catch (error) {
-        console.error(
-            "Invalid user data in localStorage:",
-            error
-        );
-
-        localStorage.removeItem(
-            "user"
-        );
-
+        console.error("Invalid user data in localStorage:", error);
+        localStorage.removeItem("user");
         return null;
     }
 }
 
+function getDefaultPath(role) {
+    return role === "admin" ? "/reports" : "/dashboard";
+}
 
-function AccessDenied() {
-    const goToDashboard = () => {
-        window.location.href =
-            "/dashboard";
+function AccessDenied({ role }) {
+    const goToDefaultPage = () => {
+        window.location.href = getDefaultPath(role);
     };
-
 
     return (
         <main className="access-denied-page">
             <section className="access-denied-card">
                 <div className="access-denied-icon">
-                    <ShieldX
-                        size={34}
-                        strokeWidth={1.7}
-                    />
+                    <ShieldX size={34} strokeWidth={1.7} />
                 </div>
 
                 <span className="access-denied-eyebrow">
                     Restricted Area
                 </span>
 
-                <h1>
-                    Access Denied
-                </h1>
+                <h1>Access Denied</h1>
 
                 <p>
-                    Your account does not
-                    have permission to
-                    access this section of
-                    Inventory Sales
-                    Analytics.
+                    Your account does not have permission to access
+                    this section of Inventory Sales Analytics.
                 </p>
 
-                <button
-                    type="button"
-                    onClick={
-                        goToDashboard
-                    }
-                >
-                    <ArrowLeft
-                        size={17}
-                        strokeWidth={2}
-                    />
-
-                    Back to Dashboard
+                <button type="button" onClick={goToDefaultPage}>
+                    <ArrowLeft size={17} strokeWidth={2} />
+                    Back to Your Workspace
                 </button>
             </section>
         </main>
     );
 }
 
-
 function App() {
-    const currentPath =
-        window.location.pathname;
-
-    const user =
-        getStoredUser();
-
+    const currentPath = window.location.pathname;
+    const user = getStoredUser();
 
     if (currentPath === "/") {
         return <Login />;
     }
 
-
     if (!user) {
-        window.location.href =
-            "/";
-
+        window.location.href = "/";
         return null;
     }
 
-
-    const route =
-        ROUTES[currentPath];
-
+    const role = user.role?.toLowerCase();
+    const route = ROUTES[currentPath];
 
     if (!route) {
-        window.location.href =
-            "/dashboard";
-
+        window.location.href = getDefaultPath(role);
         return null;
     }
 
-
-    if (
-        !route.roles.includes(
-            user.role
-        )
-    ) {
-        return (
-            <AccessDenied />
-        );
+    if (!route.roles.includes(role)) {
+        return <AccessDenied role={role} />;
     }
 
-
-    const PageComponent =
-        route.component;
-
+    const PageComponent = route.component;
 
     return (
         <Layout>

@@ -2601,7 +2601,6 @@
         min-width: 1100px;
     }
 }
-
 /* ============================================================
    BOTANICAL THEME OVERRIDES
    Complete CSS file: preserves all existing Products component selectors.
@@ -2800,8 +2799,6 @@
         font-size: 21px;
     }
 }
-
-
 /* ============================================================
    BARCODE SCANNER MODAL FIX
    Keeps the camera preview inside the modal and above the page.
@@ -3538,7 +3535,6 @@
     font-size: 13px;
     line-height: 1.6;
 }
-
 .products-not-found-barcode,
 .products-not-found-note {
     display: flex;
@@ -3689,7 +3685,6 @@
         padding: 8px 10px;
     }
 }
-
 @media (prefers-reduced-motion: reduce) {
 
     .products-result-clear,
@@ -3701,7 +3696,6 @@
         animation-duration: 1.5s;
     }
 }
-
 /* ============================================================
    BOTANICAL UI POLISH — PRODUCTS
    Palette preserved: cream, sage, forest, terracotta.
@@ -3973,5 +3967,159 @@
     .premium-products-page table.products-table *,
     .modern-products-page table.products-table * {
         transition-duration: .01ms !important;
+    }
+}
+/* EDIT PRODUCT BUTTON */
+
+.products-edit-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 13px;
+    border: 1px solid #9bbda7;
+    border-radius: 8px;
+    background: #edf5ef;
+    color: #426b50;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.products-edit-button:hover {
+    background: #dcece0;
+    border-color: #789f85;
+    transform: translateY(-1px);
+}
+
+/* EDIT PRODUCT MODAL */
+
+.products-edit-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(35, 48, 39, 0.48);
+    backdrop-filter: blur(4px);
+}
+
+.products-edit-modal {
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 26px;
+    border: 1px solid #dce8dd;
+    border-radius: 18px;
+    background: #fffefb;
+    box-shadow: 0 20px 60px rgba(35, 48, 39, 0.2);
+}
+
+.products-edit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.products-edit-header h2 {
+    margin: 0;
+    color: #385b43;
+    font-size: 21px;
+    font-weight: 700;
+}
+
+.products-edit-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.products-edit-fields label {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    color: #506657;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.products-edit-fields input {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid #d5e2d7;
+    border-radius: 8px;
+    outline: none;
+    background: #ffffff;
+    color: #344b39;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.products-edit-fields input:focus {
+    border-color: #83a98d;
+    box-shadow: 0 0 0 3px rgba(131, 169, 141, 0.15);
+}
+
+.products-edit-fields input:disabled {
+    background: #f1f4f0;
+    color: #89958b;
+    cursor: not-allowed;
+}
+
+.products-edit-cancel,
+.products-edit-save {
+    min-height: 40px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.products-edit-cancel {
+    border: 1px solid #d5e0d6;
+    background: #ffffff;
+    color: #5d6c60;
+}
+
+.products-edit-cancel:hover {
+    background: #f1f5f1;
+}
+
+.products-edit-save {
+    border: 1px solid #6f9979;
+    background: #739c7c;
+    color: #ffffff;
+}
+
+.products-edit-save:hover {
+    background: #5f8869;
+}
+
+.products-edit-save:disabled,
+.products-edit-cancel:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+    .products-edit-modal {
+        padding: 20px;
+    }
+
+    .products-edit-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .products-edit-header h2 {
+        font-size: 18px;
     }
 }

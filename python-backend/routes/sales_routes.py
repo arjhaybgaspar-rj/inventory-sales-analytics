@@ -6,7 +6,7 @@ sales_bp = Blueprint("sales", __name__, url_prefix="/api/sales")
 
 
 @sales_bp.route("", methods=["GET"])
-@login_required(["admin", "owner", "manager", "cashier"])
+@login_required(["admin", "manager", "cashier"])
 def get_sales():
     connection = None
     cursor = None
@@ -54,7 +54,7 @@ def get_sales():
 
 
 @sales_bp.route("", methods=["POST"])
-@login_required(["admin", "owner", "manager", "cashier"])
+@login_required(["owner", "manager", "cashier"])
 def create_sale():
     data = request.get_json()
 

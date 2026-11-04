@@ -7,7 +7,7 @@ inventory_bp = Blueprint("inventory", __name__, url_prefix="/api/inventory")
 
 
 @inventory_bp.route("", methods=["GET"])
-@login_required(["admin", "owner", "manager"])
+@login_required(["admin", "manager"])
 def get_inventory():
     connection = None
     cursor = None
