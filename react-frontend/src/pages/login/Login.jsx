@@ -75,11 +75,21 @@ function Login() {
             const data = await response.json().catch(() => ({}));
 
             if (response.ok && data.success && data.user) {
-                localStorage.setItem("user", JSON.stringify(data.user));
-                window.location.href = "/dashboard";
-                return;
-            }
+                const user = {
+                    ...data.user,
+                    role: data.user.role?.trim().toLowerCase()
+                };
 
+                localStorage.setItem("user", JSON.stringify(user));
+
+                const destination = user.role === "admin"
+                    ? "/reports"
+                    : "/dashboard";
+
+                window.location.href = destination;
+                 return;
+            }
+            
             setMessageType("error");
             setMessage(data.message || "We couldn't sign you in. Check your details and try again.");
         } catch (error) {

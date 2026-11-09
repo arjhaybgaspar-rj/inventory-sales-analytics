@@ -20,6 +20,8 @@ def get_audit_logs():
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
 
+        cursor.execute("SET time_zone = '+08:00'")
+
         cursor.execute("""
             SELECT
                 activity_logs.log_id,

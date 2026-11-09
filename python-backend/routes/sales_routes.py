@@ -454,3 +454,93 @@ def create_sale():
 
         if connection:
             connection.close()
+
+
+@sales_bp.route("/<int:sale_id>", methods=["GET"])
+@login_required(["admin", "manager", "cashier"])
+def get_sale_details(sale_id):
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                s.sale_id,
+                s.user_id,
+                u.full_name AS cashier,
+                s.total_amount,
+                s.payment_method,
+                s.sale_date
+            FROM sales s
+            INNER JOIN users u
+                ON s.user_id = u.user_id
+            WHERE s.sale_id = %s
+            LIMIT 1
+            """,
+            (sale_id,)
+        )
+
+        sale = cursor.fetchone()
+
+        if not sale:
+            return jsonify({
+                "success": False,
+                "message": "Transaction not found."
+            }), 404
+
+        if (
+            session.get("role") == "cashier"
+            and sale["user_id"] != session.get("user_id")
+        ):
+            return jsonify({
+                "success": False,
+                "message": "Access denied."
+            }), 403
+
+        cursor.execute(
+            """
+            SELECT
+                p.product_id,
+                p.product_name,
+                si.batch_id,
+                b.batch_number,
+                si.quantity,
+                si.unit_price,
+                si.subtotal
+            FROM sale_items si
+            INNER JOIN batches b
+                ON si.batch_id = b.batch_id
+            INNER JOIN products p
+                ON b.product_id = p.product_id
+            WHERE si.sale_id = %s
+            ORDER BY p.product_name ASC, si.batch_id ASC
+            """,
+            (sale_id,)
+        )
+
+        items = cursor.fetchall()
+
+        return jsonify({
+            "success": True,
+            "sale": sale,
+            "items": items
+        }), 200
+
+    except Exception as e:
+        print("Get sale details error:", repr(e))
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if connection:
+            connection.close()

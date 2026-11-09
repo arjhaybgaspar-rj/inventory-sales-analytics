@@ -56,14 +56,39 @@ function AuditLogs() {
     });
 
     const formatDate = (date) => {
-        if (!date) return "—";
+    if (!date) return "—";
 
-        const parsedDate = new Date(date);
+    const value = String(date).replace("T", " ").trim();
 
-        if (Number.isNaN(parsedDate.getTime())) return "—";
+    const [datePart, timePart] = value.split(" ");
 
-        return parsedDate.toLocaleString();
-    };
+    if (!datePart || !timePart) return value;
+
+    const [year, month, day] = datePart.split("-");
+    const [hour, minute, second = "00"] = timePart.split(":");
+
+    const dateObject = new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second.split(".")[0])
+    );
+
+    if (Number.isNaN(dateObject.getTime())) return value;
+
+    return dateObject.toLocaleString("en-PH", {
+        timeZone: "Asia/Manila",
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true
+    });
+};
 
     return (
         <div className="audit-page">

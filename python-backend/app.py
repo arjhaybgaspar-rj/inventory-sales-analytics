@@ -21,9 +21,11 @@ CORS(
     origins=[
         "http://localhost:5173",
         "http://localhost:5174",
-        "http://localhost:5175"
+        "http://localhost:5175",
+        "http://localhost:64239"
     ]
 )
+
 app.register_blueprint(barcode_bp)
 app.register_blueprint(product_bp)
 app.register_blueprint(auth_bp)
@@ -41,7 +43,7 @@ def home():
 
 if __name__ == "__main__":
     app.run(
-        host="127.0.0.1",
+        host="0.0.0.0",
         port=5000,
         debug=True
     )

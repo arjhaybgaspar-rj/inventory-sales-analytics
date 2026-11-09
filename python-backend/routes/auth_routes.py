@@ -13,19 +13,38 @@ def verify_password(stored_password, entered_password):
     return stored_password == entered_password
 
 
-@auth_bp.route("/login", methods=["POST"])
-def login():
-    data = request.get_json(silent=True) or {}
+def log_user_activity(user_id, action, description):
+    connection = None
+    cursor = None
 
-    username = data.get("username", "").strip()
-    password = data.get("password", "")
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
 
-    if not username or not password:
-        return jsonify({
-            "success": False,
-            "message": "Username and password are required."
-        }), 400
+        cursor.execute("SET time_zone = '+08:00'")
 
+        cursor.execute("""
+            INSERT INTO activity_logs
+                (user_id, action, description)
+            VALUES (%s, %s, %s)
+        """, (user_id, action, description))
+
+        connection.commit()
+
+    except Exception as e:
+        if connection:
+            connection.rollback()
+
+        print("Audit logging error:", e)
+
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+def authenticate_user(username, password):
     connection = None
     cursor = None
 
@@ -43,22 +62,13 @@ def login():
         user = cursor.fetchone()
 
         if not user:
-            return jsonify({
-                "success": False,
-                "message": "Invalid username or password."
-            }), 401
+            return None, "Invalid username or password.", 401
 
         if user["status"] != "active":
-            return jsonify({
-                "success": False,
-                "message": "This account is inactive."
-            }), 403
+            return None, "This account is inactive.", 403
 
         if not verify_password(user["password"], password):
-            return jsonify({
-                "success": False,
-                "message": "Invalid username or password."
-            }), 401
+            return None, "Invalid username or password.", 401
 
         if not user["password"].startswith(("scrypt:", "pbkdf2:")):
             cursor.execute("""
@@ -71,36 +81,127 @@ def login():
             ))
             connection.commit()
 
-        session.clear()
-        session["user_id"] = user["user_id"]
-        session["username"] = user["username"]
-        session["full_name"] = user["full_name"]
-        session["role"] = user["role"]
-
-        return jsonify({
-            "success": True,
-            "message": "Login successful.",
-            "user": {
-                "user_id": user["user_id"],
-                "username": user["username"],
-                "full_name": user["full_name"],
-                "role": user["role"],
-                "status": user["status"]
-            }
-        }), 200
-
-    except Exception as e:
-        print("Login error:", e)
-        return jsonify({
-            "success": False,
-            "message": "Unable to process login."
-        }), 500
+        return user, None, 200
 
     finally:
         if cursor:
             cursor.close()
         if connection:
             connection.close()
+
+
+def create_user_session(user):
+    session.clear()
+    session["user_id"] = user["user_id"]
+    session["username"] = user["username"]
+    session["full_name"] = user["full_name"]
+    session["role"] = user["role"]
+
+
+def user_response(user):
+    return {
+        "user_id": user["user_id"],
+        "username": user["username"],
+        "full_name": user["full_name"],
+        "role": user["role"],
+        "status": user["status"]
+    }
+
+
+@auth_bp.route("/login", methods=["POST"])
+def login():
+    data = request.get_json(silent=True) or {}
+
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+
+    if not username or not password:
+        return jsonify({
+            "success": False,
+            "message": "Username and password are required."
+        }), 400
+
+    try:
+        user, error, status_code = authenticate_user(username, password)
+
+        if error:
+            return jsonify({
+                "success": False,
+                "message": error
+            }), status_code
+
+        create_user_session(user)
+
+        log_user_activity(
+            user["user_id"],
+            "LOGIN",
+            f'{user["full_name"]} ({user["role"]}) logged in successfully.'
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Login successful.",
+            "user": user_response(user)
+        }), 200
+
+    except Exception as e:
+        print("Login error:", e)
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to process login."
+        }), 500
+
+
+@auth_bp.route("/mobile/login", methods=["POST"])
+def mobile_login():
+    data = request.get_json(silent=True) or {}
+
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+
+    if not username or not password:
+        return jsonify({
+            "success": False,
+            "message": "Username and password are required."
+        }), 400
+
+    try:
+        user, error, status_code = authenticate_user(username, password)
+
+        if error:
+            return jsonify({
+                "success": False,
+                "message": error
+            }), status_code
+
+        if user["role"] != "cashier":
+            return jsonify({
+                "success": False,
+                "message": "Only cashier accounts can access the mobile app."
+            }), 403
+
+        create_user_session(user)
+
+        log_user_activity(
+            user["user_id"],
+            "LOGIN",
+            f'{user["full_name"]} ({user["role"]}) logged in through mobile.'
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Login successful.",
+            "user": user_response(user)
+        }), 200
+
+    except Exception as e:
+        print("Mobile login error:", e)
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to process login."
+        }), 500
 
 
 @auth_bp.route("/profile/update", methods=["PUT"])
@@ -162,6 +263,7 @@ def update_profile():
 
         if not user or user["status"] != "active":
             session.clear()
+
             return jsonify({
                 "success": False,
                 "message": "Your account is unavailable. Please log in again."
@@ -253,6 +355,13 @@ def update_profile():
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
+    if "user_id" in session:
+        log_user_activity(
+            session["user_id"],
+            "LOGOUT",
+            f'{session.get("full_name", session.get("username"))} ({session.get("role")}) logged out.'
+        )
+
     session.clear()
 
     return jsonify({
