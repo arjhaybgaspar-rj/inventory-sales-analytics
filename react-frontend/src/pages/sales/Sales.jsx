@@ -1,8 +1,6 @@
-
 import {
     AlertCircle,
     Banknote,
-    Barcode,
     Camera,
     CheckCircle2,
     CircleDollarSign,
@@ -37,6 +35,8 @@ import {
     API_URL
 } from "../../services/api";
 
+import ReceiptModal from "../../components/receipts/ReceiptModal.jsx";
+
 import {
     formatProductBrand,
     formatProductCategory
@@ -66,13 +66,18 @@ const PAYMENT_METHODS = [
     }
 ];
 
+const SALES_HISTORY_PAGE_SIZE = 10;
+
 
 function Sales() {
     const [products, setProducts] = useState([]);
     const [sales, setSales] = useState([]);
     const [cart, setCart] = useState([]);
+    const [batchLoadingIds, setBatchLoadingIds] = useState([]);
+    const [selectedCatalogProductId, setSelectedCatalogProductId] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [salesSearch, setSalesSearch] = useState("");
+    const [salesHistoryPage, setSalesHistoryPage] = useState(1);
     const [paymentMethod, setPaymentMethod] = useState("cash");
     const [productsLoading, setProductsLoading] = useState(true);
     const [salesLoading, setSalesLoading] = useState(true);
@@ -80,6 +85,7 @@ function Sales() {
     const [message, setMessage] = useState("");
     const [messageType, setMessageType] = useState("success");
     const [completedSale, setCompletedSale] = useState(null);
+    const [selectedReceiptId, setSelectedReceiptId] = useState(null);
 
     const [scannerOpen, setScannerOpen] = useState(false);
     const [scannerLoading, setScannerLoading] = useState(false);
@@ -288,39 +294,7 @@ function Sales() {
                             return;
                         }
 
-                        setCart((currentCart) => {
-                            const existingItem = currentCart.find(
-                                (item) =>
-                                    item.product_id ===
-                                    matchedProduct.product_id
-                            );
-
-                            if (existingItem) {
-                                return currentCart.map((item) =>
-                                    item.product_id ===
-                                    matchedProduct.product_id
-                                        ? {
-                                              ...item,
-                                              quantity:
-                                                  Number(item.quantity) + 1
-                                          }
-                                        : item
-                                );
-                            }
-
-                            return [
-                                ...currentCart,
-                                {
-                                    ...matchedProduct,
-                                    quantity: 1
-                                }
-                            ];
-                        });
-
-                        showMessage(
-                            `${matchedProduct.product_name} added to the cart.`,
-                            "success"
-                        );
+                        void addToCart(matchedProduct);
                     }
                 );
 
@@ -439,6 +413,23 @@ function Sales() {
         });
     }, [sales, salesSearch]);
 
+    const salesHistoryPageCount = Math.ceil(
+        filteredSales.length / SALES_HISTORY_PAGE_SIZE
+    );
+    const currentSalesHistoryPage = Math.min(
+        salesHistoryPage,
+        Math.max(salesHistoryPageCount, 1)
+    );
+    const paginatedSales = filteredSales.slice(
+        (currentSalesHistoryPage - 1) * SALES_HISTORY_PAGE_SIZE,
+        currentSalesHistoryPage * SALES_HISTORY_PAGE_SIZE
+    );
+
+
+    const selectedCatalogProduct = filteredProducts.find(
+        (product) => Number(product.product_id) === Number(selectedCatalogProductId)
+    ) || null;
+
 
     const cartItemCount = useMemo(() => {
         return cart.reduce(
@@ -454,7 +445,7 @@ function Sales() {
             (total, item) =>
                 total +
                 Number(item.selling_price || 0) *
-                    Number(item.quantity || 0),
+                Number(item.quantity || 0),
             0
         );
     }, [cart]);
@@ -469,22 +460,110 @@ function Sales() {
     }, [sales]);
 
 
-    const addToCart = (product) => {
+    const loadEligibleBatches = async (productId) => {
+        setBatchLoadingIds((current) =>
+            current.includes(productId)
+                ? current
+                : [...current, productId]
+        );
+
+        try {
+            const response = await fetch(
+                `${API_URL}/sales/products/${productId}/eligible-batches`,
+                { credentials: "include" }
+            );
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message || "Unable to load eligible batches."
+                );
+            }
+
+            return {
+                batches: Array.isArray(data.batches) ? data.batches : [],
+                recommendedBatchId: data.recommended_batch_id ?? null
+            };
+        } finally {
+            setBatchLoadingIds((current) =>
+                current.filter((id) => id !== productId)
+            );
+        }
+    };
+
+
+    const addToCart = async (product) => {
         setMessage("");
 
-        setCart((currentCart) => {
-            const existingItem = currentCart.find(
-                (item) =>
+        const existingItem = cart.find(
+            (item) => item.product_id === product.product_id
+        );
+
+        if (existingItem) {
+            const totalAvailable = (existingItem.eligibleBatches || []).reduce(
+                (total, batch) => total + Number(batch.available_quantity || 0),
+                0
+            );
+            const nextQuantity = Number(existingItem.quantity) + 1;
+
+            if (
+                existingItem.eligibleBatches?.length &&
+                nextQuantity > totalAvailable
+            ) {
+                showMessage(
+                    `Only ${totalAvailable} usable units are available across all batches.`,
+                    "error"
+                );
+                return;
+            }
+
+            setCart((currentCart) =>
+                currentCart.map((item) =>
                     item.product_id === product.product_id
+                        ? { ...item, quantity: nextQuantity }
+                        : item
+                )
+            );
+            return;
+        }
+
+        let eligibleBatches = [];
+        let selectedBatchId = null;
+        let batchLoadFailed = false;
+
+        try {
+            const result = await loadEligibleBatches(product.product_id);
+            eligibleBatches = result.batches;
+            selectedBatchId = result.recommendedBatchId;
+        } catch (error) {
+            console.error("Eligible batches error:", error);
+            batchLoadFailed = true;
+        }
+
+        setCart((currentCart) => {
+            const alreadyAdded = currentCart.find(
+                (item) => item.product_id === product.product_id
             );
 
-            if (existingItem) {
+            if (alreadyAdded) {
+                const nextQuantity = Number(alreadyAdded.quantity) + 1;
+                const available = (alreadyAdded.eligibleBatches || []).reduce(
+                    (total, batch) => total + Number(batch.available_quantity || 0),
+                    0
+                );
+                if (
+                    alreadyAdded.eligibleBatches?.length &&
+                    nextQuantity > available
+                ) {
+                    showMessage(
+                        `Only ${available} usable units are available across all batches.`,
+                        "error"
+                    );
+                    return currentCart;
+                }
                 return currentCart.map((item) =>
                     item.product_id === product.product_id
-                        ? {
-                              ...item,
-                              quantity: Number(item.quantity) + 1
-                          }
+                        ? { ...item, quantity: nextQuantity }
                         : item
                 );
             }
@@ -493,21 +572,50 @@ function Sales() {
                 ...currentCart,
                 {
                     ...product,
-                    quantity: 1
+                    quantity: 1,
+                    eligibleBatches,
+                    selectedBatchId,
+                    batchLoadFailed
                 }
             ];
         });
+
+        showMessage(
+            batchLoadFailed
+                ? `${product.product_name} added. Batch options could not be loaded; checkout will use automatic FEFO selection.`
+                : `${product.product_name} added to the cart.`,
+            batchLoadFailed ? "error" : "success"
+        );
     };
 
 
     const increaseQuantity = (productId) => {
+        const item = cart.find(
+            (cartItem) => cartItem.product_id === productId
+        );
+        const totalAvailable = (item?.eligibleBatches || []).reduce(
+            (total, batch) => total + Number(batch.available_quantity || 0),
+            0
+        );
+
+        if (
+            item?.eligibleBatches?.length &&
+            Number(item.quantity) + 1 > totalAvailable
+        ) {
+            showMessage(
+                `Only ${totalAvailable} usable units are available across all batches.`,
+                "error"
+            );
+            return;
+        }
+
         setCart((currentCart) =>
             currentCart.map((item) =>
                 item.product_id === productId
                     ? {
-                          ...item,
-                          quantity: Number(item.quantity) + 1
-                      }
+                        ...item,
+                        quantity: Number(item.quantity) + 1
+                    }
                     : item
             )
         );
@@ -520,9 +628,9 @@ function Sales() {
                 .map((item) =>
                     item.product_id === productId
                         ? {
-                              ...item,
-                              quantity: Number(item.quantity) - 1
-                          }
+                            ...item,
+                            quantity: Number(item.quantity) - 1
+                        }
                         : item
                 )
                 .filter(
@@ -542,13 +650,99 @@ function Sales() {
             return;
         }
 
+        const item = cart.find(
+            (cartItem) => cartItem.product_id === productId
+        );
+        const totalAvailable = (item?.eligibleBatches || []).reduce(
+            (total, batch) => total + Number(batch.available_quantity || 0),
+            0
+        );
+
+        if (
+            item?.eligibleBatches?.length &&
+            quantityValue > totalAvailable
+        ) {
+            showMessage(
+                `Only ${totalAvailable} usable units are available across all batches.`,
+                "error"
+            );
+            return;
+        }
+
         setCart((currentCart) =>
             currentCart.map((item) =>
                 item.product_id === productId
                     ? {
-                          ...item,
-                          quantity: quantityValue
-                      }
+                        ...item,
+                        quantity: quantityValue
+                    }
+                    : item
+            )
+        );
+    };
+
+
+    const selectCartBatch = (productId, batchId) => {
+        const item = cart.find(
+            (cartItem) => cartItem.product_id === productId
+        );
+        const selectedBatch = item?.eligibleBatches?.find(
+            (batch) => Number(batch.batch_id) === Number(batchId)
+        );
+
+        const totalAvailable = (item?.eligibleBatches || []).reduce(
+            (total, batch) => total + Number(batch.available_quantity || 0),
+            0
+        );
+
+        if (
+            !selectedBatch ||
+            totalAvailable < Number(item?.quantity || 0)
+        ) {
+            showMessage(
+                "That batch does not have enough usable units for this cart quantity.",
+                "error"
+            );
+            return;
+        }
+
+        const recommendedBatchId = item.eligibleBatches?.[0]?.batch_id;
+        const isRecommendedBatch =
+            Number(selectedBatch.batch_id) === Number(recommendedBatchId);
+
+        setCart((currentCart) =>
+            currentCart.map((cartItem) =>
+                cartItem.product_id === productId
+                    ? {
+                        ...cartItem,
+                        selectedBatchId: selectedBatch.batch_id,
+                        batchOverrideReason: isRecommendedBatch
+                            ? ""
+                            : cartItem.batchOverrideReason || ""
+                    }
+                    : cartItem
+            )
+        );
+        setMessage("");
+    };
+
+
+    const isBatchOverride = (item) => {
+        const recommendedBatchId = item.eligibleBatches?.[0]?.batch_id;
+
+        return (
+            item.selectedBatchId != null &&
+            recommendedBatchId != null &&
+            Number(item.selectedBatchId) !== Number(recommendedBatchId)
+        );
+    };
+
+
+    const updateBatchOverrideReason = (productId, value) => {
+        setCart((currentCart) =>
+            currentCart.map((item) =>
+                item.product_id === productId
+                    ? { ...item, batchOverrideReason: value }
                     : item
             )
         );
@@ -635,6 +829,20 @@ function Sales() {
             return;
         }
 
+        const missingOverrideReason = cart.some(
+            (item) =>
+                isBatchOverride(item) &&
+                String(item.batchOverrideReason || "").trim().length < 5
+        );
+
+        if (missingOverrideReason) {
+            showMessage(
+                "Enter at least five characters explaining why a non-recommended batch was selected.",
+                "error"
+            );
+            return;
+        }
+
         const orderSnapshot = {
             items: cart.map((item) => ({ ...item })),
             itemCount: cartItemCount,
@@ -659,7 +867,10 @@ function Sales() {
                         payment_method: paymentMethod,
                         items: cart.map((item) => ({
                             product_id: item.product_id,
-                            quantity: Number(item.quantity)
+                            quantity: Number(item.quantity),
+                            batch_id: item.selectedBatchId ?? null,
+                            batch_override_reason:
+                                item.batchOverrideReason?.trim() || ""
                         }))
                     })
                 }
@@ -711,8 +922,36 @@ function Sales() {
     };
 
 
+    const formatExpiryDate = (value) => {
+        const datePart = String(value || "").slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+            return "No valid expiry date";
+        }
+
+        const date = new Date(`${datePart}T00:00:00Z`);
+        if (
+            Number.isNaN(date.getTime()) ||
+            date.toISOString().slice(0, 10) !== datePart
+        ) {
+            return "No valid expiry date";
+        }
+
+        return new Intl.DateTimeFormat("en-PH", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            timeZone: "UTC"
+        }).format(date);
+    };
+
+
     const formatDateTime = (value) => {
         if (!value) {
+            return "N/A";
+        }
+
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
             return "N/A";
         }
 
@@ -722,7 +961,7 @@ function Sales() {
             year: "numeric",
             hour: "numeric",
             minute: "2-digit"
-        }).format(new Date(value));
+        }).format(date);
     };
 
 
@@ -740,18 +979,10 @@ function Sales() {
         <div className="modern-sales-page">
             <header className="sales-modern-header">
                 <div>
-                    <span className="sales-modern-eyebrow">
-                        <Sparkles size={15} strokeWidth={2} />
-                        Point of Sale
-                    </span>
 
                     <h1>Sales</h1>
 
-                    <p>
-                        Process customer purchases, manage the
-                        current order, and review completed
-                        transactions.
-                    </p>
+
                 </div>
 
                 <button
@@ -858,9 +1089,7 @@ function Sales() {
                 <div className="sales-products-panel">
                     <div className="sales-panel-header">
                         <div>
-                            <span className="sales-panel-eyebrow">
-                                Product Catalog
-                            </span>
+
 
                             <h2>Select Products</h2>
 
@@ -1002,94 +1231,83 @@ function Sales() {
                             </span>
                         </div>
                     ) : (
-                        <div className="sales-product-grid">
-                            {filteredProducts.map((product) => {
-                                const cartItem = cart.find(
-                                    (item) =>
-                                        item.product_id ===
-                                        product.product_id
+                        <div className={selectedCatalogProduct ? "sales-catalog-explorer has-selection" : "sales-catalog-explorer"}>
+                            <div className="sales-product-list" role="list" aria-label="Product catalog">
+                                {filteredProducts.map((product) => {
+                                    const cartItem = cart.find(
+                                        (item) => Number(item.product_id) === Number(product.product_id)
+                                    );
+                                    const isSelected = Number(selectedCatalogProductId) === Number(product.product_id);
+
+                                    return (
+                                        <div className={isSelected ? "sales-product-list-row selected" : "sales-product-list-row"} key={product.product_id} role="listitem">
+                                            <button
+                                                type="button"
+                                                className="sales-product-select"
+                                                onClick={() => setSelectedCatalogProductId(product.product_id)}
+                                                aria-pressed={isSelected}
+                                            >
+                                                <span className="sales-product-select-main">
+                                                    <strong>{product.product_name}</strong>
+                                                    <small>{formatProductBrand(product.brand)} · {formatProductCategory(product.category)}</small>
+                                                    <small className="sales-product-select-barcode">{product.barcode || "No barcode recorded"}</small>
+                                                </span>
+                                                <span className="sales-product-select-meta">
+                                                    <strong>{formatCurrency(product.selling_price)}</strong>
+                                                    {cartItem && <small>{cartItem.quantity} in cart</small>}
+                                                </span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="sales-product-list-add"
+                                                onClick={() => void addToCart(product)}
+                                                disabled={processing || batchLoadingIds.includes(product.product_id)}
+                                                aria-label={`Add ${product.product_name} to cart`}
+                                            >
+                                                <Plus size={16} strokeWidth={2} />
+                                                Add
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {selectedCatalogProduct && (() => {
+                                const selectedCartItem = cart.find(
+                                    (item) => Number(item.product_id) === Number(selectedCatalogProduct.product_id)
                                 );
 
                                 return (
-                                    <article
-                                        className="sales-product-card"
-                                        key={product.product_id}
-                                    >
-                                        <div className="sales-product-image-area">
-                                            <div className="sales-product-image">
-                                                {product.image_url ? (
-                                                    <img
-                                                        src={product.image_url}
-                                                        alt={product.product_name}
-                                                    />
-                                                ) : (
-                                                    <Package
-                                                        size={36}
-                                                        strokeWidth={1.5}
-                                                    />
-                                                )}
-                                            </div>
-
-                                            {cartItem && (
-                                                <span className="sales-product-cart-badge">
-                                                    {cartItem.quantity} in cart
-                                                </span>
+                                    <aside className="sales-product-detail" aria-live="polite" aria-label="Selected product details">
+                                        <div className="sales-product-detail-image">
+                                            {selectedCatalogProduct.image_url ? (
+                                                <img src={selectedCatalogProduct.image_url} alt={selectedCatalogProduct.product_name} />
+                                            ) : (
+                                                <Package size={54} strokeWidth={1.4} />
                                             )}
                                         </div>
-
-                                        <div className="sales-product-info">
-                                            <div className="sales-product-name-area">
-                                                <h3 title={product.product_name}>
-                                                    {product.product_name}
-                                                </h3>
-
-                                                <p title={product.brand || ""}>
-                                                    {formatProductBrand(
-                                                        product.brand
-                                                    )}
-                                                </p>
-                                            </div>
-
-                                            <div className="sales-product-category">
-                                                {formatProductCategory(
-                                                    product.category
-                                                )}
-                                            </div>
-
-                                            <div className="sales-product-barcode">
-                                                <Barcode
-                                                    size={14}
-                                                    strokeWidth={1.8}
-                                                />
-                                                <span>{product.barcode}</span>
-                                            </div>
-
-                                            <div className="sales-product-bottom">
-                                                <strong className="sales-product-price">
-                                                    {formatCurrency(
-                                                        product.selling_price
-                                                    )}
-                                                </strong>
-
-                                                <button
-                                                    type="button"
-                                                    className="sales-product-add-button"
-                                                    onClick={() =>
-                                                        addToCart(product)
-                                                    }
-                                                    disabled={processing}
-                                                >
-                                                    <Plus
-                                                        size={17}
-                                                        strokeWidth={2}
-                                                    />
-                                                    Add
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </article>
+                                        <span className="sales-product-detail-eyebrow">Selected product</span>
+                                        <h3>{selectedCatalogProduct.product_name}</h3>
+                                        <p className="sales-product-detail-brand">{formatProductBrand(selectedCatalogProduct.brand)}</p>
+                                        <div className="sales-product-detail-category">{formatProductCategory(selectedCatalogProduct.category)}</div>
+                                        <dl className="sales-product-detail-data">
+                                            <div><dt>Barcode</dt><dd>{selectedCatalogProduct.barcode || "Not recorded"}</dd></div>
+                                            <div><dt>Unit</dt><dd>{selectedCatalogProduct.unit || "Not specified"}</dd></div>
+                                            <div><dt>Price</dt><dd>{formatCurrency(selectedCatalogProduct.selling_price)}</dd></div>
+                                            {selectedCartItem && <div><dt>In current cart</dt><dd>{selectedCartItem.quantity} unit{selectedCartItem.quantity === 1 ? "" : "s"}</dd></div>}
+                                        </dl>
+                                        <button
+                                            type="button"
+                                            className="sales-product-detail-add"
+                                            onClick={() => void addToCart(selectedCatalogProduct)}
+                                            disabled={processing || batchLoadingIds.includes(selectedCatalogProduct.product_id)}
+                                        >
+                                            <Plus size={17} strokeWidth={2} />
+                                            {selectedCartItem ? "Add one more" : "Add to cart"}
+                                        </button>
+                                    </aside>
                                 );
-                            })}
+                            })()}
                         </div>
                     )}
                 </div>
@@ -1194,6 +1412,112 @@ function Sales() {
                                             </button>
                                         </div>
 
+                                        <div className="sales-cart-batch-control">
+                                            <label
+                                                htmlFor={`sales-batch-${item.product_id}`}
+                                            >
+                                                Fulfillment batch
+                                            </label>
+                                            {item.eligibleBatches?.length > 0 ? (
+                                                <>
+                                                    <select
+                                                        id={`sales-batch-${item.product_id}`}
+                                                        value={item.selectedBatchId ?? ""}
+                                                        onChange={(event) =>
+                                                            selectCartBatch(
+                                                                item.product_id,
+                                                                event.target.value
+                                                            )
+                                                        }
+                                                        disabled={processing}
+                                                    >
+                                                        {item.eligibleBatches.map(
+                                                            (batch, index) => {
+                                                                const expiryLabel = batch.expiry_date
+                                                                    ? formatExpiryDate(batch.expiry_date)
+                                                                    : "No expiry date";
+
+                                                                return (
+                                                                    <option
+                                                                        key={batch.batch_id}
+                                                                        value={batch.batch_id}
+                                                                        disabled={
+                                                                            (item.eligibleBatches || []).reduce(
+                                                                                (total, eligibleBatch) =>
+                                                                                    total + Number(eligibleBatch.available_quantity || 0),
+                                                                                0
+                                                                            ) < Number(item.quantity)
+                                                                        }
+                                                                    >
+                                                                        {index === 0
+                                                                            ? "Recommended · "
+                                                                            : ""}
+                                                                        {batch.batch_number ||
+                                                                            `Batch ${batch.batch_id}`}
+                                                                        {" · "}
+                                                                        {batch.available_quantity} usable
+                                                                        {" · "}
+                                                                        {expiryLabel}
+                                                                    </option>
+                                                                );
+                                                            }
+                                                        )}
+                                                    </select>
+                                                    <small>
+                                                        Checkout uses all eligible
+                                                        batches in FEFO order. A
+                                                        selected batch is used first.
+                                                    </small>
+                                                    {isBatchOverride(item) && (
+                                                        <div className="sales-cart-batch-override">
+                                                            <label
+                                                                htmlFor={`sales-batch-reason-${item.product_id}`}
+                                                            >
+                                                                Why are you choosing this batch?
+                                                            </label>
+                                                            <textarea
+                                                                id={`sales-batch-reason-${item.product_id}`}
+                                                                value={
+                                                                    item.batchOverrideReason ||
+                                                                    ""
+                                                                }
+                                                                onChange={(event) =>
+                                                                    updateBatchOverrideReason(
+                                                                        item.product_id,
+                                                                        event.target.value
+                                                                    )
+                                                                }
+                                                                maxLength={250}
+                                                                rows={2}
+                                                                disabled={processing}
+                                                                placeholder="Enter a reason (at least 5 characters)"
+                                                                aria-required="true"
+                                                            />
+                                                            <small>
+                                                                Required for audit records ·{" "}
+                                                                {
+                                                                    String(
+                                                                        item.batchOverrideReason ||
+                                                                        ""
+                                                                    ).length
+                                                                }
+                                                                /250 characters
+                                                            </small>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <div
+                                                    className="sales-cart-batch-message"
+                                                    role="status"
+                                                >
+                                                    {item.batchLoadFailed
+                                                        ? "Batch options are unavailable. Checkout will use automatic FEFO selection."
+                                                        : "No eligible batch is currently available for this product."}
+                                                </div>
+                                            )}
+                                        </div>
+
                                         <div className="sales-cart-item-controls">
                                             <div className="sales-quantity-control">
                                                 <button
@@ -1245,7 +1569,7 @@ function Sales() {
                                             <strong className="sales-cart-line-total">
                                                 {formatCurrency(
                                                     Number(item.selling_price) *
-                                                        Number(item.quantity)
+                                                    Number(item.quantity)
                                                 )}
                                             </strong>
                                         </div>
@@ -1365,9 +1689,7 @@ function Sales() {
                         </div>
 
                         <div>
-                            <span className="sales-panel-eyebrow">
-                                Transaction Records
-                            </span>
+
 
                             <h2>Sales History</h2>
 
@@ -1385,16 +1707,20 @@ function Sales() {
                             <input
                                 type="text"
                                 value={salesSearch}
-                                onChange={(event) =>
+                                onChange={(event) => {
                                     setSalesSearch(event.target.value)
-                                }
+                                    setSalesHistoryPage(1);
+                                }}
                                 placeholder="Search sale, cashier, or payment..."
                             />
 
                             {salesSearch && (
                                 <button
                                     type="button"
-                                    onClick={() => setSalesSearch("")}
+                                    onClick={() => {
+                                        setSalesSearch("");
+                                        setSalesHistoryPage(1);
+                                    }}
                                     aria-label="Clear history search"
                                 >
                                     <X size={15} strokeWidth={2} />
@@ -1463,71 +1789,126 @@ function Sales() {
                         </span>
                     </div>
                 ) : (
-                    <div className="sales-table-wrapper">
-                        <table className="sales-modern-table">
-                            <thead>
-                                <tr>
-                                    <th>Sale ID</th>
-                                    <th>Cashier</th>
-                                    <th>Payment</th>
-                                    <th>Date & Time</th>
-                                    <th>Total</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {filteredSales.map((sale) => (
-                                    <tr key={sale.sale_id}>
-                                        <td>
-                                            <span className="sales-id">
-                                                #{sale.sale_id}
-                                            </span>
-                                        </td>
-
-                                        <td>
-                                            <strong className="sales-cashier">
-                                                {getCashierName(sale)}
-                                            </strong>
-                                        </td>
-
-                                        <td>
-                                            <span
-                                                className={`sales-payment-badge sales-payment-${sale.payment_method}`}
-                                            >
-                                                {sale.payment_method}
-                                            </span>
-                                        </td>
-
-                                        <td>
-                                            {formatDateTime(sale.sale_date)}
-                                        </td>
-
-                                        <td>
-                                            <strong className="sales-history-total">
-                                                {formatCurrency(
-                                                    sale.total_amount
-                                                )}
-                                            </strong>
-                                        </td>
-
-                                        <td>
-                                            <span className="sales-completed-badge">
-                                                <CheckCircle2
-                                                    size={13}
-                                                    strokeWidth={2}
-                                                />
-                                                Completed
-                                            </span>
-                                        </td>
+                    <>
+                        <div className="sales-table-wrapper">
+                            <table className="sales-modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Sale ID</th>
+                                        <th>Cashier</th>
+                                        <th>Payment</th>
+                                        <th>Date & Time</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+
+                                <tbody>
+                                    {paginatedSales.map((sale) => (
+                                        <tr key={sale.sale_id}>
+                                            <td>
+                                                <button type="button" className="reports-receipt-link sales-id" onClick={() => setSelectedReceiptId(sale.sale_id)} aria-label={`View receipt for sale ${sale.sale_id}`}>#{sale.sale_id}</button>
+                                            </td>
+
+                                            <td>
+                                                <strong className="sales-cashier">
+                                                    {getCashierName(sale)}
+                                                </strong>
+                                            </td>
+
+                                            <td>
+                                                <span
+                                                    className={`sales-payment-badge sales-payment-${sale.payment_method}`}
+                                                >
+                                                    {sale.payment_method}
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                {formatDateTime(sale.sale_date)}
+                                            </td>
+
+                                            <td>
+                                                <strong className="sales-history-total">
+                                                    {formatCurrency(
+                                                        sale.total_amount
+                                                    )}
+                                                </strong>
+                                            </td>
+
+                                            <td>
+                                                <span className="sales-completed-badge">
+                                                    <CheckCircle2
+                                                        size={13}
+                                                        strokeWidth={2}
+                                                    />
+                                                    Completed
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {salesHistoryPageCount > 1 && (
+                            <nav
+                                className="sales-history-pagination"
+                                aria-label="Sales history pages"
+                            >
+                                <span>
+                                    Showing{" "}
+                                    {(currentSalesHistoryPage - 1) *
+                                        SALES_HISTORY_PAGE_SIZE +
+                                        1}
+                                    {" to "}
+                                    {Math.min(
+                                        currentSalesHistoryPage *
+                                        SALES_HISTORY_PAGE_SIZE,
+                                        filteredSales.length
+                                    )}{" "}
+                                    of {filteredSales.length}
+                                </span>
+
+                                <div>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setSalesHistoryPage(
+                                                currentSalesHistoryPage - 1
+                                            )
+                                        }
+                                        disabled={currentSalesHistoryPage === 1}
+                                    >
+                                        Previous
+                                    </button>
+                                    <span>
+                                        Page {currentSalesHistoryPage} of{" "}
+                                        {salesHistoryPageCount}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setSalesHistoryPage(
+                                                currentSalesHistoryPage + 1
+                                            )
+                                        }
+                                        disabled={
+                                            currentSalesHistoryPage ===
+                                            salesHistoryPageCount
+                                        }
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </nav>
+                        )}
+                    </>
                 )}
             </section>
 
+
+            <ReceiptModal saleId={selectedReceiptId} onClose={() => setSelectedReceiptId(null)} />
 
             {completedSale && (
                 <div
@@ -1600,7 +1981,7 @@ function Sales() {
                                     <strong>
                                         {formatCurrency(
                                             Number(item.quantity) *
-                                                Number(item.selling_price)
+                                            Number(item.selling_price)
                                         )}
                                     </strong>
                                 </div>
@@ -1654,7 +2035,7 @@ function Sales() {
                             <strong>
                                 {formatCurrency(
                                     completedSale.backendTotal ??
-                                        completedSale.total
+                                    completedSale.total
                                 )}
                             </strong>
                         </div>

@@ -1,37 +1,83 @@
 /*
-  Inventory Sales Management — Global Botanical Theme
-  Target: react-frontend/src/index.css
-  Global reset, typography, accessible focus states, and botanical base colors.
-  Page-specific styling remains in each page's own CSS file.
+  Inventory Sales Management
+  Shared colors and accessible base styles.
 */
 
 :root {
     color-scheme: light;
-    --botanical-cream: #f7f5ec;
-    --botanical-cream-deep: #efeee2;
-    --botanical-paper: #fffdf7;
-    --botanical-sage-50: #f1f4ec;
-    --botanical-sage-100: #e5ebdd;
-    --botanical-sage-200: #d1dcc5;
-    --botanical-sage-300: #b8c9a8;
-    --botanical-sage-500: #829b70;
-    --botanical-sage-600: #687f58;
-    --botanical-forest-700: #35513b;
-    --botanical-forest-800: #294331;
-    --botanical-forest-900: #203629;
-    --botanical-terracotta-500: #c77758;
-    --botanical-terracotta-600: #ad6044;
-    --botanical-ink: #26362b;
-    --botanical-muted: #697468;
-    --botanical-border: #dfe4d8;
-    --botanical-focus: rgba(104, 127, 88, 0.24);
+
+    /* Core palette from the reference */
+    --green-950: #0b3d2e;
+    --green-900: #145c46;
+    --green-800: #1e7a5d;
+    --green-700: #2e9d74;
+    --green-500: #61b795;
+    --green-300: #a7d6c0;
+    --green-50: #eaf6f0;
+
+    /* Surface and text colors */
+    --page-background: var(--green-50);
+    --surface: #ffffff;
+    --surface-soft: #f5faf7;
+    --text-primary: #17392d;
+    --text-secondary: #63786d;
+    --border: #d5e8de;
+    --focus-ring: rgba(46, 157, 116, 0.28);
+
+    /* Semantic feedback colors */
+    --alert-success: #26734f;
+    --alert-success-background: #e9f5ed;
+    --alert-warning: #9a6815;
+    --alert-warning-background: #fbf3df;
+    --alert-danger: #b5473a;
+    --alert-danger-background: #fff0ed;
+    --alert-info: #235c78;
+    --alert-info-background: #eaf4f8;
+
+    /* Existing project variable names */
+    --botanical-cream: var(--page-background);
+    --botanical-cream-deep: #dcefe5;
+    --botanical-paper: var(--surface);
+
+    --botanical-sage-50: #f5faf7;
+    --botanical-sage-100: var(--green-50);
+    --botanical-sage-200: var(--green-300);
+    --botanical-sage-300: #85c9aa;
+    --botanical-sage-500: var(--green-500);
+    --botanical-sage-600: var(--green-800);
+
+    --botanical-forest-700: var(--green-900);
+    --botanical-forest-800: var(--green-950);
+    --botanical-forest-900: #082e22;
+
+    /* Legacy names kept so existing page styles continue to resolve */
+    --botanical-terracotta-500: var(--alert-danger);
+    --botanical-terracotta-600: #963b31;
+    --botanical-ink: var(--text-primary);
+    --botanical-muted: var(--text-secondary);
+    --botanical-border: var(--border);
+    --botanical-focus: var(--focus-ring);
+
+    /* Short aliases used by component styles */
+    --ink: var(--text-primary);
+    --muted: var(--text-secondary);
+    --sage-50: var(--botanical-sage-50);
+    --sage-100: var(--botanical-sage-100);
+    --sage-200: var(--botanical-sage-200);
+    --sage-300: var(--botanical-sage-300);
+    --sage-500: var(--botanical-sage-500);
+    --sage-600: var(--botanical-sage-600);
+    --forest-700: var(--botanical-forest-700);
+    --forest-800: var(--botanical-forest-800);
+    --forest-900: var(--botanical-forest-900);
+    --focus-ring: var(--focus-ring);
 }
 
 html {
     box-sizing: border-box;
     min-width: 320px;
     min-height: 100%;
-    background: var(--botanical-cream);
+    background: var(--page-background);
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -47,8 +93,8 @@ body {
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
-    background: var(--botanical-cream);
-    color: var(--botanical-ink);
+    background: var(--page-background);
+    color: var(--text-primary);
     font-family:
         Inter,
         ui-sans-serif,
@@ -111,21 +157,21 @@ table {
 }
 
 a {
-    color: var(--botanical-forest-700);
+    color: var(--green-800);
     text-underline-offset: 3px;
 }
 
 a:hover {
-    color: var(--botanical-terracotta-600);
+    color: var(--green-900);
 }
 
 ::selection {
-    color: var(--botanical-forest-900);
-    background: var(--botanical-sage-200);
+    color: #ffffff;
+    background: var(--green-800);
 }
 
 :focus-visible {
-    outline: 3px solid var(--botanical-sage-600);
+    outline: 3px solid var(--focus-ring);
     outline-offset: 3px;
 }
 
@@ -133,8 +179,8 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
     outline: none;
-    border-color: var(--botanical-sage-600);
-    box-shadow: 0 0 0 3px var(--botanical-focus);
+    border-color: var(--green-700);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 button:focus-visible,
@@ -144,7 +190,7 @@ a:focus-visible {
 
 hr {
     border: 0;
-    border-top: 1px solid var(--botanical-border);
+    border-top: 1px solid var(--border);
 }
 
 @media (prefers-reduced-motion: reduce) {

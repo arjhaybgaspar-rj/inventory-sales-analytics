@@ -1,15 +1,16 @@
 .botanical-dashboard {
-    --dash-forest: #315b46;
-    --dash-forest-dark: #284735;
-    --dash-sage: #66886b;
-    --dash-sage-soft: #e7eee1;
-    --dash-cream: #fbf9f2;
-    --dash-terracotta: #d9764c;
-    --dash-border: #e4e5d9;
-    --dash-muted: #788474;
+    --dash-forest: #0b3d2e;
+    --dash-forest-dark: #082e22;
+    --dash-green: #145c46;
+    --dash-green-mid: #1e7a5d;
+    --dash-green-bright: #2e9d74;
+    --dash-green-soft: #eaf6f0;
+    --dash-border: #d5e8de;
+    --dash-muted: #63786d;
+
     width: 100%;
-    color: #263b2d;
-    padding-bottom: 14px;
+    padding-bottom: 18px;
+    color: var(--text-primary, #17392d);
 }
 
 .botanical-dashboard * {
@@ -21,7 +22,7 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 24px;
-    margin-bottom: 23px;
+    margin-bottom: 22px;
 }
 
 .botanical-dashboard-heading {
@@ -33,26 +34,26 @@
     align-items: center;
     gap: 7px;
     margin-bottom: 9px;
-    color: var(--dash-forest);
+    color: var(--green-800, #1e7a5d);
     font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 1.25px;
+    font-weight: 750;
+    letter-spacing: 0.9px;
     text-transform: uppercase;
 }
 
 .botanical-dashboard-heading h1 {
     margin: 0;
-    color: #263b2d;
+    color: var(--green-950, #0b3d2e);
     font-size: clamp(30px, 3vw, 39px);
-    font-weight: 790;
-    letter-spacing: -1.2px;
+    font-weight: 750;
+    letter-spacing: -1px;
     line-height: 1.12;
 }
 
 .botanical-dashboard-heading p {
     max-width: 730px;
     margin: 10px 0 0;
-    color: #71806f;
+    color: var(--text-secondary, #63786d);
     font-size: 14px;
     line-height: 1.65;
 }
@@ -70,17 +71,17 @@
     gap: 8px;
     min-height: 43px;
     padding: 10px 13px;
-    color: #667563;
-    background: rgba(255, 253, 247, .82);
-    border: 1px solid #e4e5d9;
-    border-radius: 12px;
+    color: var(--text-secondary, #63786d);
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #d5e8de);
+    border-radius: 11px;
     font-size: 12px;
-    font-weight: 650;
+    font-weight: 600;
     white-space: nowrap;
 }
 
 .botanical-date-chip svg {
-    color: #66886b;
+    color: var(--green-700, #2e9d74);
 }
 
 .botanical-button {
@@ -91,10 +92,14 @@
     min-height: 43px;
     padding: 10px 14px;
     border: 1px solid transparent;
-    border-radius: 12px;
+    border-radius: 11px;
     font-size: 12px;
-    font-weight: 750;
-    transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    font-weight: 650;
+    transition:
+        transform 160ms ease,
+        background 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease;
 }
 
 .botanical-button:hover:not(:disabled) {
@@ -102,23 +107,24 @@
 }
 
 .botanical-button-secondary {
-    color: #315b46;
-    background: #fffdf7;
-    border-color: #dfe4d8;
-    box-shadow: 0 4px 12px rgba(47, 75, 51, .04);
+    color: #ffffff;
+    background: var(--green-900, #145c46);
+    border-color: var(--green-900, #145c46);
 }
 
 .botanical-button-secondary:hover:not(:disabled) {
-    background: #edf2e8;
+    background: var(--green-950, #0b3d2e);
+    border-color: var(--green-950, #0b3d2e);
+    box-shadow: 0 5px 13px rgba(11, 61, 46, 0.16);
 }
 
 .botanical-button:disabled {
     cursor: wait;
-    opacity: .65;
+    opacity: 0.65;
 }
 
 .botanical-spin {
-    animation: botanical-dashboard-spin .8s linear infinite;
+    animation: botanical-dashboard-spin 0.8s linear infinite;
 }
 
 @keyframes botanical-dashboard-spin {
@@ -134,34 +140,38 @@
     justify-content: space-between;
     min-height: 205px;
     margin-bottom: 20px;
-    padding: 27px 31px;
+    padding: 29px 32px;
     overflow: hidden;
-    background: linear-gradient(115deg, #e7eee1 0%, #e2e9da 52%, #d5e0cf 100%);
-    border: 1px solid #d6e1d0;
-    border-radius: 22px;
-    box-shadow: 0 7px 20px rgba(47, 75, 51, .045);
+    color: #ffffff;
+    background: linear-gradient(115deg, #0b3d2e 0%, #145c46 58%, #1e7a5d 100%);
+    border: 1px solid rgba(8, 46, 34, 0.18);
+    border-radius: 20px;
+    box-shadow: 0 12px 26px rgba(11, 61, 46, 0.14);
 }
 
 .botanical-welcome-banner::before {
     position: absolute;
-    top: -105px;
-    right: 18%;
-    width: 300px;
-    height: 300px;
+    top: -118px;
+    right: 15%;
+    width: 310px;
+    height: 310px;
     content: "";
-    border: 1px solid rgba(75, 112, 77, .13);
+    border: 1px solid rgba(255, 255, 255, 0.13);
     border-radius: 50%;
 }
 
 .botanical-welcome-banner::after {
     position: absolute;
-    right: -75px;
-    bottom: -145px;
-    width: 330px;
-    height: 330px;
+    right: -90px;
+    bottom: -175px;
+    width: 350px;
+    height: 350px;
     content: "";
-    background: rgba(255, 253, 247, .34);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 50%;
+    box-shadow:
+        0 0 0 24px rgba(255, 255, 255, 0.035),
+        0 0 0 52px rgba(255, 255, 255, 0.025);
 }
 
 .botanical-welcome-copy {
@@ -175,26 +185,26 @@
     align-items: center;
     gap: 7px;
     margin-bottom: 11px;
-    color: #587557;
+    color: #a7d6c0;
     font-size: 11px;
-    font-weight: 800;
-    letter-spacing: .8px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
 }
 
 .botanical-welcome-copy h2 {
     margin: 0;
-    color: #294333;
-    font-size: clamp(24px, 2.4vw, 31px);
-    font-weight: 790;
-    letter-spacing: -.8px;
+    color: #ffffff;
+    font-size: clamp(24px, 2.4vw, 32px);
+    font-weight: 750;
+    letter-spacing: -0.7px;
     line-height: 1.2;
 }
 
 .botanical-welcome-copy p {
     max-width: 540px;
     margin: 9px 0 0;
-    color: #657662;
+    color: rgba(255, 255, 255, 0.78);
     font-size: 13px;
     line-height: 1.65;
 }
@@ -205,7 +215,7 @@
     align-items: center;
     gap: 13px;
     margin-top: 18px;
-    color: #6e7e6b;
+    color: rgba(255, 255, 255, 0.76);
     font-size: 11px;
 }
 
@@ -217,11 +227,11 @@
 
 .botanical-role-chip {
     padding: 6px 10px;
-    color: #315b46;
-    background: rgba(255, 253, 247, .74);
-    border: 1px solid rgba(113, 145, 104, .23);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 999px;
-    font-weight: 750;
+    font-weight: 650;
 }
 
 .botanical-welcome-art {
@@ -243,8 +253,8 @@
     right: 13px;
     width: 147px;
     height: 147px;
-    background: rgba(255, 253, 247, .58);
-    border: 1px solid rgba(103, 136, 104, .2);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .botanical-art-circle-two {
@@ -252,8 +262,8 @@
     right: 32px;
     width: 109px;
     height: 109px;
-    background: #c7d6bf;
-    border: 1px solid rgba(103, 136, 104, .24);
+    background: rgba(167, 214, 192, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .botanical-art-leaf {
@@ -261,7 +271,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #537557;
+    color: #a7d6c0;
 }
 
 .botanical-art-leaf-one {
@@ -273,7 +283,7 @@
 .botanical-art-leaf-two {
     top: 60px;
     right: 112px;
-    color: #7b9675;
+    color: rgba(255, 255, 255, 0.72);
     transform: rotate(25deg);
 }
 
@@ -287,26 +297,26 @@
     gap: 4px;
     min-width: 145px;
     padding: 12px 14px;
-    color: #315b46;
-    background: #fffdf7;
-    border: 1px solid rgba(255, 255, 255, .8);
-    border-radius: 14px;
-    box-shadow: 0 10px 25px rgba(47, 75, 51, .1);
+    color: var(--green-950, #0b3d2e);
+    background: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(8, 46, 34, 0.22);
 }
 
 .botanical-art-card svg {
     margin-bottom: 3px;
-    color: #66886b;
+    color: var(--green-700, #2e9d74);
 }
 
 .botanical-art-card span {
-    color: #7b8878;
+    color: var(--text-secondary, #63786d);
     font-size: 10px;
 }
 
 .botanical-art-card strong {
     font-size: 14px;
-    font-weight: 800;
+    font-weight: 750;
 }
 
 .botanical-dashboard-message {
@@ -315,10 +325,10 @@
     gap: 10px;
     margin-bottom: 18px;
     padding: 13px 15px;
-    color: #92512f;
-    background: #fff3e9;
-    border: 1px solid #f2d5c1;
-    border-radius: 12px;
+    color: var(--alert-warning, #9a6815);
+    background: var(--alert-warning-background, #fbf3df);
+    border: 1px solid #ecdcae;
+    border-radius: 11px;
     font-size: 13px;
     line-height: 1.5;
 }
@@ -341,7 +351,7 @@
 }
 
 .botanical-dashboard-message button:hover {
-    background: rgba(217, 118, 76, .1);
+    background: rgba(154, 104, 21, 0.1);
 }
 
 .botanical-kpi-grid {
@@ -357,16 +367,20 @@
     gap: 13px;
     min-height: 130px;
     padding: 19px 17px;
-    background: rgba(255, 253, 247, .88);
-    border: 1px solid #e4e5d9;
-    border-radius: 17px;
-    box-shadow: 0 4px 14px rgba(47, 75, 51, .035);
-    transition: transform 160ms ease, box-shadow 160ms ease;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #d5e8de);
+    border-radius: 15px;
+    box-shadow: 0 4px 14px rgba(11, 61, 46, 0.035);
+    transition:
+        transform 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease;
 }
 
 .botanical-kpi-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 9px 22px rgba(47, 75, 51, .07);
+    border-color: var(--green-300, #a7d6c0);
+    box-shadow: 0 9px 22px rgba(11, 61, 46, 0.08);
 }
 
 .botanical-kpi-icon {
@@ -376,27 +390,19 @@
     width: 43px;
     height: 43px;
     flex: 0 0 43px;
-    border-radius: 13px;
+    color: var(--green-900, #145c46);
+    background: var(--green-50, #eaf6f0);
+    border: 1px solid var(--border, #d5e8de);
+    border-radius: 12px;
 }
 
-.tone-green {
-    color: #315b46;
-    background: #e3ecdf;
-}
-
-.tone-orange {
-    color: #b9623d;
-    background: #fbe9de;
-}
-
-.tone-sage {
-    color: #5f7b5d;
-    background: #edf0e2;
-}
-
+/* KPI icons share one green family; status colors are reserved for alerts. */
+.tone-green,
+.tone-orange,
+.tone-sage,
 .tone-olive {
-    color: #7a8052;
-    background: #f0efdc;
+    color: var(--green-900, #145c46);
+    background: var(--green-50, #eaf6f0);
 }
 
 .botanical-kpi-copy {
@@ -407,30 +413,30 @@
 
 .botanical-kpi-copy>span {
     margin: 1px 0 7px;
-    color: #788474;
+    color: var(--text-secondary, #63786d);
     font-size: 12px;
-    font-weight: 650;
+    font-weight: 600;
 }
 
 .botanical-kpi-copy strong {
     overflow-wrap: anywhere;
-    color: #2a4232;
+    color: var(--green-950, #0b3d2e);
     font-size: clamp(20px, 1.7vw, 26px);
-    font-weight: 820;
-    letter-spacing: -.5px;
+    font-weight: 750;
+    letter-spacing: -0.4px;
     line-height: 1.15;
 }
 
 .botanical-kpi-copy small {
     margin-top: 7px;
-    color: #8a9484;
+    color: var(--text-secondary, #63786d);
     font-size: 10px;
     line-height: 1.4;
 }
 
 .botanical-manager-overview {
     display: grid;
-    grid-template-columns: minmax(0, 1.02fr) minmax(0, .98fr);
+    grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
     gap: 17px;
     margin-bottom: 24px;
 }
@@ -439,10 +445,10 @@
     min-width: 0;
     margin-bottom: 20px;
     padding: 22px;
-    background: rgba(255, 253, 247, .88);
-    border: 1px solid #e4e5d9;
-    border-radius: 18px;
-    box-shadow: 0 5px 16px rgba(47, 75, 51, .035);
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #d5e8de);
+    border-radius: 16px;
+    box-shadow: 0 5px 16px rgba(11, 61, 46, 0.04);
 }
 
 .botanical-manager-overview .botanical-panel {
@@ -460,15 +466,15 @@
 .botanical-panel-heading h2,
 .botanical-section-title-row h2 {
     margin: 0;
-    color: #2b4432;
+    color: var(--green-950, #0b3d2e);
     font-size: 20px;
-    font-weight: 790;
-    letter-spacing: -.45px;
+    font-weight: 700;
+    letter-spacing: -0.35px;
 }
 
 .botanical-panel-heading p {
     margin: 6px 0 0;
-    color: #7b8878;
+    color: var(--text-secondary, #63786d);
     font-size: 12px;
     line-height: 1.55;
 }
@@ -476,10 +482,10 @@
 .botanical-panel-eyebrow {
     display: block;
     margin-bottom: 6px;
-    color: #66886b;
+    color: var(--green-800, #1e7a5d);
     font-size: 10px;
-    font-weight: 850;
-    letter-spacing: 1.1px;
+    font-weight: 750;
+    letter-spacing: 0.9px;
     text-transform: uppercase;
 }
 
@@ -490,14 +496,15 @@
     width: 42px;
     height: 42px;
     flex: 0 0 42px;
-    color: #557653;
-    background: #e8eee2;
-    border-radius: 12px;
+    color: var(--green-900, #145c46);
+    background: var(--green-50, #eaf6f0);
+    border: 1px solid var(--border, #d5e8de);
+    border-radius: 11px;
 }
 
 .botanical-heading-icon-orange {
-    color: #bc6a43;
-    background: #fbe9de;
+    color: var(--green-900, #145c46);
+    background: var(--green-50, #eaf6f0);
 }
 
 .botanical-stock-total {
@@ -514,14 +521,14 @@
 }
 
 .botanical-stock-total span {
-    color: #7b8878;
+    color: var(--text-secondary, #63786d);
     font-size: 11px;
 }
 
 .botanical-stock-total strong {
-    color: #2b4432;
+    color: var(--green-950, #0b3d2e);
     font-size: 28px;
-    font-weight: 820;
+    font-weight: 750;
 }
 
 .botanical-stock-total-mark {
@@ -530,8 +537,9 @@
     justify-content: center;
     width: 36px;
     height: 36px;
-    color: #4d7552;
-    background: #e7eee1;
+    color: var(--green-800, #1e7a5d);
+    background: var(--green-50, #eaf6f0);
+    border: 1px solid var(--border, #d5e8de);
     border-radius: 50%;
 }
 
@@ -540,7 +548,7 @@
     width: 100%;
     height: 11px;
     overflow: hidden;
-    background: #eceee5;
+    background: #edf2ef;
     border-radius: 999px;
 }
 
@@ -562,7 +570,7 @@
     align-items: center;
     gap: 7px;
     min-width: 0;
-    color: #6f7c6d;
+    color: var(--text-secondary, #63786d);
     font-size: 11px;
 }
 
@@ -575,7 +583,7 @@
 
 .botanical-stock-legend-item strong {
     margin-left: auto;
-    color: #344b38;
+    color: var(--green-950, #0b3d2e);
     font-size: 12px;
 }
 
@@ -585,15 +593,15 @@
     gap: 7px;
     margin-top: 20px;
     padding: 0;
-    color: #416b4b;
+    color: var(--green-800, #1e7a5d);
     background: transparent;
     border: 0;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .botanical-text-link:hover {
-    color: #d06e45;
+    color: var(--green-950, #0b3d2e);
 }
 
 .botanical-snapshot-list {
@@ -607,7 +615,7 @@
     align-items: center;
     gap: 11px;
     padding: 12px 0;
-    border-bottom: 1px solid #eeeee5;
+    border-bottom: 1px solid var(--border, #d5e8de);
 }
 
 .botanical-snapshot-row:last-child {
@@ -621,22 +629,18 @@
     width: 38px;
     height: 38px;
     flex: 0 0 38px;
-    border-radius: 11px;
+    color: var(--green-900, #145c46);
+    background: var(--green-50, #eaf6f0);
+    border: 1px solid var(--border, #d5e8de);
+    border-radius: 10px;
 }
 
-.snapshot-icon-green {
-    color: #527653;
-    background: #e7eee1;
-}
-
-.snapshot-icon-orange {
-    color: #b9623d;
-    background: #fbe9de;
-}
-
+/* Non-alert snapshot icons use the shared green palette. */
+.snapshot-icon-green,
+.snapshot-icon-orange,
 .snapshot-icon-sand {
-    color: #898451;
-    background: #f0efdc;
+    color: var(--green-900, #145c46);
+    background: var(--green-50, #eaf6f0);
 }
 
 .botanical-snapshot-row>div {
@@ -647,21 +651,21 @@
 }
 
 .botanical-snapshot-row>div strong {
-    color: #354a39;
+    color: var(--green-950, #0b3d2e);
     font-size: 12px;
-    font-weight: 750;
+    font-weight: 650;
 }
 
 .botanical-snapshot-row>div span {
-    color: #879183;
+    color: var(--text-secondary, #63786d);
     font-size: 10px;
     line-height: 1.35;
 }
 
 .botanical-snapshot-row>b {
-    color: #2e4835;
+    color: var(--green-900, #145c46);
     font-size: 19px;
-    font-weight: 820;
+    font-weight: 750;
 }
 
 .botanical-panel-loading,
@@ -672,24 +676,24 @@
     justify-content: center;
     min-height: 160px;
     padding: 22px;
-    color: #81907e;
+    color: var(--text-secondary, #63786d);
     text-align: center;
     font-size: 12px;
 }
 
 .botanical-panel-empty svg {
     margin-bottom: 10px;
-    color: #88a083;
+    color: var(--green-700, #2e9d74);
 }
 
 .botanical-panel-empty strong {
-    color: #3c5740;
+    color: var(--green-900, #145c46);
     font-size: 14px;
 }
 
 .botanical-panel-empty span {
     margin-top: 5px;
-    color: #83907e;
+    color: var(--text-secondary, #63786d);
     font-size: 11px;
     line-height: 1.5;
 }
@@ -711,7 +715,7 @@
 }
 
 .botanical-section-note {
-    color: #8a9484;
+    color: var(--text-secondary, #63786d);
     font-size: 11px;
 }
 
@@ -734,17 +738,20 @@
     padding: 14px;
     color: inherit;
     text-align: left;
-    background: rgba(255, 253, 247, .8);
-    border: 1px solid #e4e5d9;
-    border-radius: 15px;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #d5e8de);
+    border-radius: 13px;
     cursor: pointer;
-    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    transition:
+        transform 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease;
 }
 
 .botanical-quick-action:hover {
     transform: translateY(-2px);
-    border-color: #cbd9c4;
-    box-shadow: 0 8px 20px rgba(47, 75, 51, .07);
+    border-color: var(--green-300, #a7d6c0);
+    box-shadow: 0 8px 18px rgba(11, 61, 46, 0.08);
 }
 
 .botanical-quick-action-icon {
@@ -754,7 +761,19 @@
     width: 42px;
     height: 42px;
     flex: 0 0 42px;
-    border-radius: 12px;
+    color: var(--green-900, #145c46);
+    background: var(--green-50, #eaf6f0);
+    border: 1px solid var(--border, #d5e8de);
+    border-radius: 11px;
+}
+
+/* Keep shortcut icon colors consistent across destinations. */
+.botanical-quick-action-icon.tone-green,
+.botanical-quick-action-icon.tone-orange,
+.botanical-quick-action-icon.tone-sage,
+.botanical-quick-action-icon.tone-olive {
+    color: var(--green-900, #145c46);
+    background: var(--green-50, #eaf6f0);
 }
 
 .botanical-quick-action-copy {
@@ -766,25 +785,25 @@
 }
 
 .botanical-quick-action-copy strong {
-    color: #354a39;
+    color: var(--green-950, #0b3d2e);
     font-size: 12px;
-    font-weight: 780;
+    font-weight: 700;
     line-height: 1.35;
 }
 
 .botanical-quick-action-copy small {
-    color: #879183;
+    color: var(--text-secondary, #63786d);
     font-size: 10px;
     line-height: 1.4;
 }
 
 .botanical-quick-action-arrow {
     flex: 0 0 auto;
-    color: #9aa492;
+    color: var(--green-700, #2e9d74);
 }
 
 .botanical-quick-action:hover .botanical-quick-action-arrow {
-    color: #d9764c;
+    color: var(--green-950, #0b3d2e);
 }
 
 .botanical-panel-heading-with-action {
@@ -799,25 +818,25 @@
     min-height: 37px;
     padding: 8px 11px;
     flex-shrink: 0;
-    color: #466b4c;
-    background: #fffdf7;
-    border: 1px solid #dce4d6;
-    border-radius: 10px;
+    color: var(--green-900, #145c46);
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--green-300, #a7d6c0);
+    border-radius: 9px;
     font-size: 11px;
-    font-weight: 750;
+    font-weight: 650;
     transition: background 160ms ease, border-color 160ms ease;
 }
 
 .botanical-outline-button:hover {
-    background: #edf2e8;
-    border-color: #c9d8c2;
+    background: var(--green-50, #eaf6f0);
+    border-color: var(--green-700, #2e9d74);
 }
 
 .botanical-table-wrap {
     width: 100%;
     overflow-x: auto;
-    border: 1px solid #e7e8de;
-    border-radius: 12px;
+    border: 1px solid var(--border, #d5e8de);
+    border-radius: 11px;
 }
 
 .botanical-table {
@@ -827,28 +846,28 @@
 }
 
 .botanical-table thead {
-    background: #f3f3e9;
+    background: var(--green-50, #eaf6f0);
 }
 
 .botanical-table th {
     padding: 12px 14px;
-    color: #788474;
+    color: var(--green-900, #145c46);
     font-size: 10px;
-    font-weight: 850;
-    letter-spacing: .55px;
+    font-weight: 700;
+    letter-spacing: 0.45px;
     text-align: left;
     text-transform: uppercase;
     white-space: nowrap;
-    border-bottom: 1px solid #e4e5d9;
+    border-bottom: 1px solid var(--border, #d5e8de);
 }
 
 .botanical-table td {
     padding: 13px 14px;
-    color: #63715f;
+    color: var(--text-secondary, #63786d);
     font-size: 12px;
     line-height: 1.45;
     white-space: nowrap;
-    border-bottom: 1px solid #eeeee5;
+    border-bottom: 1px solid #edf3ef;
 }
 
 .botanical-table tbody tr:last-child td {
@@ -856,7 +875,7 @@
 }
 
 .botanical-table tbody tr:hover {
-    background: #fbfbf5;
+    background: #f7fbf8;
 }
 
 .botanical-table-number {
@@ -864,8 +883,8 @@
 }
 
 .botanical-sale-total {
-    color: #315b46 !important;
-    font-weight: 800;
+    color: var(--green-900, #145c46) !important;
+    font-weight: 750;
 }
 
 .botanical-transaction-cell,
@@ -884,9 +903,10 @@
     width: 34px;
     height: 34px;
     flex: 0 0 34px;
-    color: #66886b;
-    background: #e9efe3;
-    border-radius: 10px;
+    color: var(--green-800, #1e7a5d);
+    background: var(--green-50, #eaf6f0);
+    border: 1px solid var(--border, #d5e8de);
+    border-radius: 9px;
 }
 
 .botanical-transaction-cell>span:last-child,
@@ -900,27 +920,27 @@
 .botanical-transaction-cell strong,
 .botanical-product-cell strong {
     overflow: hidden;
-    color: #354a39;
+    color: var(--green-950, #0b3d2e);
     font-size: 12px;
-    font-weight: 780;
+    font-weight: 650;
     text-overflow: ellipsis;
 }
 
 .botanical-transaction-cell small,
 .botanical-product-cell small {
-    color: #879183;
+    color: var(--text-secondary, #63786d);
     font-size: 10px;
 }
 
 .botanical-payment-chip {
     display: inline-flex;
     padding: 5px 8px;
-    color: #597453;
-    background: #edf2e8;
-    border: 1px solid #e0e8d9;
+    color: var(--green-900, #145c46);
+    background: var(--green-50, #eaf6f0);
+    border: 1px solid var(--border, #d5e8de);
     border-radius: 999px;
     font-size: 10px;
-    font-weight: 750;
+    font-weight: 650;
     text-transform: capitalize;
 }
 
@@ -929,24 +949,24 @@
     padding: 6px 9px;
     border-radius: 999px;
     font-size: 10px;
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .status-healthy {
-    color: #3e6b50;
-    background: #e7eee1;
+    color: #236347;
+    background: #e8f4ec;
 }
 
 .status-low,
 .status-expiring {
-    color: #a75b36;
-    background: #fbe9de;
+    color: var(--alert-warning, #9a6815);
+    background: var(--alert-warning-background, #fbf3df);
 }
 
 .status-out,
 .status-expired {
-    color: #a8443a;
-    background: #ffe0d9;
+    color: var(--alert-danger, #b5473a);
+    background: var(--alert-danger-background, #fff0ed);
 }
 
 .botanical-dashboard-footer {
@@ -955,7 +975,7 @@
     justify-content: space-between;
     gap: 15px;
     padding: 8px 2px 0;
-    color: #8a9484;
+    color: var(--text-secondary, #63786d);
     font-size: 10px;
 }
 
@@ -963,8 +983,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: #60785c;
-    font-weight: 750;
+    color: var(--green-800, #1e7a5d);
+    font-weight: 650;
 }
 
 @media (max-width: 1250px) {
@@ -994,7 +1014,7 @@
     .botanical-welcome-art {
         width: 200px;
         flex-basis: 200px;
-        transform: scale(.9);
+        transform: scale(0.9);
         transform-origin: right center;
     }
 }
@@ -1055,7 +1075,7 @@
 
     .botanical-panel {
         padding: 17px;
-        border-radius: 16px;
+        border-radius: 14px;
     }
 
     .botanical-panel-heading h2 {
@@ -1096,8 +1116,8 @@
 
 @media (max-width: 390px) {
     .botanical-date-chip {
-        font-size: 11px;
         padding: 9px;
+        font-size: 11px;
     }
 
     .botanical-button {
@@ -1122,174 +1142,86 @@
     .botanical-dashboard *,
     .botanical-dashboard *::before,
     .botanical-dashboard *::after {
-        animation-duration: .01ms !important;
-        transition-duration: .01ms !important;
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
     }
 }
 
-/* ============================================================
-   BOTANICAL UI POLISH — CARDS, TABLES, INTERACTION
-   Palette preserved: cream, sage, forest, terracotta.
-   ============================================================ */
-.botanical-dashboard .botanical-kpi-card {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    border-color: rgba(124, 142, 116, 0.24);
-    background: linear-gradient(145deg, rgba(255, 253, 247, .98), rgba(242, 245, 235, .92));
-    box-shadow: 0 7px 18px rgba(47, 75, 51, .055), inset 0 1px 0 rgba(255, 255, 255, .92);
-    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+/* Compact, plain-language stockout summary */
+.snapshot-icon-history {
+    color: var(--green-900, #145c46);
+    background: var(--green-50, #eaf6f0);
 }
 
-.botanical-dashboard .botanical-kpi-card::before {
-    position: absolute;
-    inset: 0 auto auto 0;
-    z-index: -1;
-    width: 100%;
-    height: 4px;
-    content: "";
-    background: linear-gradient(90deg, #315b46 0%, #89a18a 62%, #d9764c 100%);
-    opacity: .9;
+.botanical-stockout-history-summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 4px 0 2px;
+    padding: 10px 12px;
+    color: var(--text-secondary, #63786d);
+    background: #f5faf7;
+    border: 1px solid var(--border, #d5e8de);
+    border-radius: 10px;
+    font-size: 11px;
+    line-height: 1.45;
 }
 
-.botanical-dashboard .botanical-kpi-card::after {
-    position: absolute;
-    right: -28px;
-    bottom: -48px;
-    z-index: -1;
-    width: 112px;
-    height: 112px;
-    content: "";
-    border: 1px solid rgba(102, 136, 107, .12);
-    border-radius: 50%;
-    box-shadow: 0 0 0 13px rgba(102, 136, 107, .035), 0 0 0 27px rgba(102, 136, 107, .025);
+.botanical-stockout-history-summary svg {
+    flex: 0 0 15px;
+    margin-top: 1px;
+    color: var(--green-800, #1e7a5d);
 }
 
-.botanical-dashboard .botanical-kpi-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(102, 136, 107, .42);
-    box-shadow: 0 15px 30px rgba(47, 75, 51, .105), inset 0 1px 0 rgba(255, 255, 255, .96);
+.botanical-stockout-link {
+    margin-top: 14px;
 }
 
-.botanical-dashboard .botanical-kpi-icon {
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72), 0 5px 12px rgba(47, 75, 51, .07);
-    transition: transform 220ms ease;
+.botanical-stockout-empty {
+    min-height: 118px;
 }
 
-.botanical-dashboard .botanical-kpi-card:hover .botanical-kpi-icon {
-    transform: translateY(-2px) rotate(-3deg);
-}
-
-.botanical-dashboard .botanical-panel {
-    border-color: rgba(124, 142, 116, .25);
-    background: linear-gradient(145deg, rgba(255, 253, 247, .97), rgba(248, 248, 240, .93));
-    box-shadow: 0 8px 24px rgba(47, 75, 51, .055), inset 0 1px 0 rgba(255, 255, 255, .9);
-    transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
-}
-
-.botanical-dashboard .botanical-panel:hover {
-    border-color: rgba(102, 136, 107, .36);
-    box-shadow: 0 12px 28px rgba(47, 75, 51, .075), inset 0 1px 0 rgba(255, 255, 255, .94);
-}
-
-.botanical-dashboard .botanical-panel-heading-icon {
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8), 0 5px 12px rgba(47, 75, 51, .06);
-}
-
-.botanical-dashboard .botanical-quick-action {
-    position: relative;
-    overflow: hidden;
-    border: 1px solid rgba(124, 142, 116, .22);
-    box-shadow: 0 4px 12px rgba(47, 75, 51, .035);
-    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
-}
-
-.botanical-dashboard .botanical-quick-action::after {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    content: "";
-    background: linear-gradient(90deg, #66886b, #d9764c);
-    opacity: 0;
-    transition: opacity 200ms ease;
-}
-
-.botanical-dashboard .botanical-quick-action:hover {
-    transform: translateY(-3px);
-    border-color: rgba(102, 136, 107, .4);
-    box-shadow: 0 12px 22px rgba(47, 75, 51, .09);
-}
-
-.botanical-dashboard .botanical-quick-action:hover::after {
-    opacity: 1;
-}
-
-.botanical-dashboard .botanical-table-wrap,
-.botanical-dashboard .botanical-table-wrap table {
-    border-radius: 14px;
-}
-
-.botanical-dashboard .botanical-table-wrap {
-    overflow: auto;
-    border: 1px solid rgba(124, 142, 116, .23);
-    box-shadow: 0 5px 16px rgba(47, 75, 51, .035);
-}
-
-.botanical-dashboard .botanical-table {
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-.botanical-dashboard .botanical-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    color: #405a43;
-    background: linear-gradient(180deg, #edf2e8, #e4ebdd);
-    border-bottom: 1px solid #d4dfce;
-}
-
-.botanical-dashboard .botanical-table tbody tr {
-    transition: background 150ms ease;
-}
-
-.botanical-dashboard .botanical-table tbody tr:nth-child(even) {
-    background: rgba(241, 243, 234, .48);
-}
-
-.botanical-dashboard .botanical-table tbody tr:hover {
-    background: #edf3e8;
-}
-
-.botanical-dashboard .botanical-table tbody td {
-    border-bottom-color: rgba(124, 142, 116, .15);
-}
-
-.botanical-dashboard .botanical-status-chip,
-.botanical-dashboard .botanical-payment-chip {
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .75);
-}
-
-.botanical-dashboard .botanical-art-card {
-    border-color: rgba(255, 255, 255, .95);
-    box-shadow: 0 13px 28px rgba(47, 75, 51, .14);
-    transition: transform 220ms ease, box-shadow 220ms ease;
-}
-
-.botanical-dashboard .botanical-welcome-banner:hover .botanical-art-card {
-    transform: translateY(-3px) rotate(-1deg);
-    box-shadow: 0 17px 32px rgba(47, 75, 51, .17);
-}
-
-@media (prefers-reduced-motion: reduce) {
-
-    .botanical-dashboard .botanical-kpi-card,
-    .botanical-dashboard .botanical-kpi-icon,
-    .botanical-dashboard .botanical-panel,
-    .botanical-dashboard .botanical-quick-action,
-    .botanical-dashboard .botanical-art-card {
-        transition: none !important;
+@media (max-width: 640px) {
+    .botanical-stockout-history-summary {
+        font-size: 10px;
     }
+}
+
+
+.botanical-dashboard-analytics {
+    grid-column: 1 / -1;
+    min-width: 0;
+}
+
+.botanical-dashboard-analytics>.premium-reports-page {
+    width: 100%;
+}
+
+.botanical-dashboard-analytics {
+    align-self: start;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+/* Remove the empty overview column left after relocating the snapshot. */
+.botanical-manager-overview {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* Row content no longer reserves room for decorative icons or helper captions. */
+.botanical-transaction-cell,
+.botanical-product-cell {
+    gap: 0;
+    min-width: 0;
+}
+
+.botanical-transaction-cell>span:last-child,
+.botanical-product-cell>span:last-child {
+    gap: 0;
+}
+
+.botanical-stockout-history-summary {
+    padding-left: 0;
 }

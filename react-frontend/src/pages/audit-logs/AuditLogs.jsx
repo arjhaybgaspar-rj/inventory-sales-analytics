@@ -96,7 +96,6 @@ function AuditLogs() {
                 <div>
                     <span className="audit-eyebrow">ADMINISTRATION</span>
                     <h1>Audit Logs</h1>
-                    <p>Monitor user activities and important system events.</p>
                 </div>
 
                 <button

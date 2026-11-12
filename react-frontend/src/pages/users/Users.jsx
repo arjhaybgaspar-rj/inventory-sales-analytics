@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
     Search,
@@ -205,7 +204,7 @@ function Users() {
                 <div>
                     <span className="users-eyebrow">ADMINISTRATION</span>
                     <h1>User Management</h1>
-                    <p>Manage registered users and their access permissions.</p>
+
                 </div>
 
                 <button
@@ -413,7 +412,6 @@ function Users() {
                                     required
                                 >
                                     <option value="admin">Admin</option>
-                                    <option value="owner">Owner</option>
                                     <option value="manager">Manager</option>
                                     <option value="cashier">Cashier</option>
                                 </select>

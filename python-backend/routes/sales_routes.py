@@ -6,7 +6,7 @@ sales_bp = Blueprint("sales", __name__, url_prefix="/api/sales")
 
 
 @sales_bp.route("", methods=["GET"])
-@login_required(["admin", "manager", "cashier"])
+@login_required(["manager", "cashier"])
 def get_sales():
     connection = None
     cursor = None
@@ -53,8 +53,204 @@ def get_sales():
             connection.close()
 
 
+@sales_bp.route("/products/<int:product_id>/eligible-batches", methods=["GET"])
+@login_required(["manager", "cashier"])
+def get_eligible_batches(product_id):
+    """Return usable batches in FEFO order for a product at checkout."""
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                p.product_id,
+                p.product_name
+            FROM products p
+            WHERE p.product_id = %s
+                AND p.status = 'active'
+            LIMIT 1
+            """,
+            (product_id,)
+        )
+        product = cursor.fetchone()
+
+        if not product:
+            return jsonify({
+                "success": False,
+                "message": "Active product not found."
+            }), 404
+
+        cursor.execute(
+            """
+            SELECT
+                i.inventory_id,
+                i.batch_id,
+                i.quantity AS inventory_quantity,
+                b.batch_number,
+                b.quantity AS batch_quantity,
+                b.expiry_date,
+                GREATEST(
+                    LEAST(
+                        COALESCE(i.quantity, 0),
+                        COALESCE(b.quantity, 0)
+                    ),
+                    0
+                ) AS available_quantity
+            FROM inventory i
+            INNER JOIN batches b
+                ON b.batch_id = i.batch_id
+            WHERE b.product_id = %s
+                AND i.quantity > 0
+                AND b.quantity > 0
+                AND b.status = 'available'
+                AND (
+                    b.expiry_date IS NULL
+                    OR b.expiry_date >= CURDATE()
+                )
+            ORDER BY
+                b.expiry_date IS NULL,
+                b.expiry_date ASC,
+                b.batch_id ASC
+            """,
+            (product_id,)
+        )
+        batches = cursor.fetchall()
+
+        for batch in batches:
+            batch["inventory_quantity"] = int(
+                batch["inventory_quantity"] or 0
+            )
+            batch["batch_quantity"] = int(
+                batch["batch_quantity"] or 0
+            )
+            batch["available_quantity"] = int(
+                batch["available_quantity"] or 0
+            )
+
+        return jsonify({
+            "success": True,
+            "product": product,
+            "recommended_batch_id": (
+                int(batches[0]["batch_id"]) if batches else None
+            ),
+            "batches": batches
+        }), 200
+
+    except Exception as e:
+        print("Eligible sales batches error:", repr(e))
+        return jsonify({
+            "success": False,
+            "message": "Unable to load eligible batches for this product."
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if connection:
+            connection.close()
+
+
+@sales_bp.route("/<int:sale_id>", methods=["GET"])
+@login_required(["manager", "cashier"])
+def get_sale_receipt(sale_id):
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                s.sale_id,
+                s.user_id,
+                u.full_name AS cashier,
+                u.username,
+                s.total_amount,
+                s.payment_method,
+                s.sale_date
+            FROM sales s
+            LEFT JOIN users u
+                ON s.user_id = u.user_id
+            WHERE s.sale_id = %s
+            LIMIT 1
+            """,
+            (sale_id,)
+        )
+        sale = cursor.fetchone()
+
+        if not sale:
+            return jsonify({
+                "success": False,
+                "message": "Sale not found."
+            }), 404
+
+        cursor.execute(
+            """
+            SELECT
+                p.product_id,
+                p.product_name,
+                p.unit,
+                si.unit_price,
+                SUM(si.quantity) AS quantity,
+                SUM(si.subtotal) AS subtotal
+            FROM sale_items si
+            INNER JOIN batches b
+                ON si.batch_id = b.batch_id
+            INNER JOIN products p
+                ON b.product_id = p.product_id
+            WHERE si.sale_id = %s
+            GROUP BY
+                p.product_id,
+                p.product_name,
+                p.unit,
+                si.unit_price
+            ORDER BY p.product_name ASC
+            """,
+            (sale_id,)
+        )
+        items = cursor.fetchall()
+
+        sale["total_amount"] = float(sale["total_amount"] or 0)
+        for item in items:
+            item["unit_price"] = float(item["unit_price"] or 0)
+            item["quantity"] = int(item["quantity"] or 0)
+            item["subtotal"] = float(item["subtotal"] or 0)
+
+        return jsonify({
+            "success": True,
+            "receipt": {
+                "sale_id": sale["sale_id"],
+                "cashier": sale["cashier"] or sale["username"] or "Staff",
+                "sale_date": sale["sale_date"],
+                "payment_method": sale["payment_method"],
+                "total_amount": sale["total_amount"],
+                "items": items
+            }
+        }), 200
+
+    except Exception as e:
+        print("Sale receipt error:", repr(e))
+        return jsonify({
+            "success": False,
+            "message": "Unable to retrieve this receipt."
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
 @sales_bp.route("", methods=["POST"])
-@login_required(["owner", "manager", "cashier"])
+@login_required(["manager", "cashier"])
 def create_sale():
     data = request.get_json()
 
@@ -141,6 +337,10 @@ def create_sale():
         for item in items:
             product_id = item.get("product_id")
             requested_quantity = item.get("quantity")
+            requested_batch_id = item.get("batch_id")
+            batch_override_reason = str(
+                item.get("batch_override_reason") or ""
+            ).strip()
 
             if not product_id:
                 connection.rollback()
@@ -231,6 +431,75 @@ def create_sale():
             )
 
             batches = cursor.fetchall()
+            is_fefo_override = False
+
+            if requested_batch_id is not None:
+                try:
+                    requested_batch_id = int(requested_batch_id)
+                except (TypeError, ValueError):
+                    connection.rollback()
+
+                    return jsonify({
+                        "success": False,
+                        "message": "Selected batch ID must be a valid number."
+                    }), 400
+
+                selected_batch = next(
+                    (
+                        batch for batch in batches
+                        if int(batch["batch_id"]) == requested_batch_id
+                    ),
+                    None
+                )
+
+                if not selected_batch:
+                    connection.rollback()
+
+                    return jsonify({
+                        "success": False,
+                        "message": (
+                            "The selected batch is no longer available or is "
+                            "not valid for this product. Refresh the batch list."
+                        )
+                    }), 409
+
+                recommended_batch_id = (
+                    int(batches[0]["batch_id"]) if batches else None
+                )
+                is_fefo_override = (
+                    requested_batch_id != recommended_batch_id
+                )
+
+                if is_fefo_override and len(batch_override_reason) < 5:
+                    connection.rollback()
+
+                    return jsonify({
+                        "success": False,
+                        "message": (
+                            "Enter a short reason when selecting a batch "
+                            "other than the FEFO recommendation."
+                        )
+                    }), 400
+
+                if is_fefo_override and len(batch_override_reason) > 250:
+                    connection.rollback()
+
+                    return jsonify({
+                        "success": False,
+                        "message": (
+                            "The batch override reason must be 250 "
+                            "characters or fewer."
+                        )
+                    }), 400
+
+                # Keep the selected batch first, then fulfill any remaining
+                # quantity from the other eligible batches in FEFO order.
+                # This preserves a user-selected batch preference while
+                # calculating stock across the product's full eligible stock.
+                batches = [selected_batch] + [
+                    batch for batch in batches
+                    if int(batch["batch_id"]) != requested_batch_id
+                ]
 
             available_quantity = sum(
                 min(
@@ -383,7 +652,12 @@ def create_sale():
                         batch["batch_id"],
                         quantity_to_sell,
                         sale_id,
-                        "Sale transaction",
+                        (
+                            "Sale transaction; FEFO override reason: "
+                            + batch_override_reason
+                            if is_fefo_override
+                            else "Sale transaction"
+                        ),
                         user_id
                     )
                 )
@@ -457,7 +731,7 @@ def create_sale():
 
 
 @sales_bp.route("/<int:sale_id>", methods=["GET"])
-@login_required(["admin", "manager", "cashier"])
+@login_required(["manager", "cashier"])
 def get_sale_details(sale_id):
     connection = None
     cursor = None

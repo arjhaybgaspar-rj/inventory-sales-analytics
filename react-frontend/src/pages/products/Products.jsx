@@ -4,7 +4,6 @@ import {
     Barcode,
     Camera,
     CheckCircle2,
-    Database,
     Edit2,
     Info,
     Package,
@@ -24,26 +23,15 @@ import {
     useState
 } from "react";
 
-import {
-    BrowserMultiFormatReader
-} from "@zxing/browser";
-
-import {
-    BarcodeFormat,
-    DecodeHintType
-} from "@zxing/library";
-
-import {
-    API_URL
-} from "../../services/api";
-
+import { BrowserMultiFormatReader } from "@zxing/browser";
+import { BarcodeFormat, DecodeHintType } from "@zxing/library";
+import { API_URL } from "../../services/api";
 import {
     formatProductBrand,
     formatProductCategory
 } from "../../utils/productDisplay";
 
 import "./Products.css";
-
 
 function isValidEAN8(barcode) {
     if (!/^\d{8}$/.test(barcode)) return false;
@@ -56,10 +44,8 @@ function isValidEAN8(barcode) {
     }
 
     const checkDigit = (10 - (total % 10)) % 10;
-
     return checkDigit === digits[7];
 }
-
 
 function isValidEAN13(barcode) {
     if (!/^\d{13}$/.test(barcode)) return false;
@@ -72,10 +58,8 @@ function isValidEAN13(barcode) {
     }
 
     const checkDigit = (10 - (total % 10)) % 10;
-
     return checkDigit === digits[12];
 }
-
 
 function isValidUPCA(barcode) {
     if (!/^\d{12}$/.test(barcode)) return false;
@@ -88,10 +72,8 @@ function isValidUPCA(barcode) {
     }
 
     const checkDigit = (10 - (total % 10)) % 10;
-
     return checkDigit === digits[11];
 }
-
 
 function isValidScannedBarcode(barcode) {
     if (!/^\d+$/.test(barcode)) return false;
@@ -104,7 +86,6 @@ function isValidScannedBarcode(barcode) {
     return false;
 }
 
-
 function Products() {
     const videoRef = useRef(null);
     const streamRef = useRef(null);
@@ -116,6 +97,7 @@ function Products() {
     const [products, setProducts] = useState([]);
     const [barcode, setBarcode] = useState("");
     const [product, setProduct] = useState(null);
+    const [selectedProduct, setSelectedProduct] = useState(null);
     const [lookupMeta, setLookupMeta] = useState(null);
     const [sellingPrice, setSellingPrice] = useState("");
 
@@ -138,7 +120,6 @@ function Products() {
     });
     const [savingEdit, setSavingEdit] = useState(false);
 
-
     const formatCurrency = (value) => {
         return new Intl.NumberFormat("en-PH", {
             style: "currency",
@@ -146,7 +127,6 @@ function Products() {
             minimumFractionDigits: 2
         }).format(Number(value || 0));
     };
-
 
     const loadProducts = async () => {
         setCatalogLoading(true);
@@ -163,9 +143,7 @@ function Products() {
                 return;
             }
 
-            setProducts(
-                Array.isArray(data.products) ? data.products : []
-            );
+            setProducts(Array.isArray(data.products) ? data.products : []);
         } catch (err) {
             console.error("Load products error:", err);
             setError("Unable to connect to the backend.");
@@ -173,7 +151,6 @@ function Products() {
             setCatalogLoading(false);
         }
     };
-
 
     const stopCamera = () => {
         scanningRef.current = false;
@@ -193,10 +170,7 @@ function Products() {
         }
 
         if (streamRef.current) {
-            streamRef.current.getTracks().forEach((track) => {
-                track.stop();
-            });
-
+            streamRef.current.getTracks().forEach((track) => track.stop());
             streamRef.current = null;
         }
 
@@ -204,7 +178,6 @@ function Products() {
             videoRef.current.srcObject = null;
         }
     };
-
 
     const clearLookup = () => {
         stopCamera();
@@ -216,7 +189,6 @@ function Products() {
         setMessage("");
         setError("");
     };
-
 
     const lookupBarcode = async (value = barcode) => {
         const cleanBarcode = String(value || "").trim();
@@ -241,9 +213,7 @@ function Products() {
         try {
             const response = await fetch(
                 `${API_URL}/barcode/lookup?barcode=${encodeURIComponent(cleanBarcode)}`,
-                {
-                    credentials: "include"
-                }
+                { credentials: "include" }
             );
 
             const data = await response.json();
@@ -264,15 +234,12 @@ function Products() {
             if (data.exists) {
                 setSellingPrice(
                     data.product?.selling_price !== null &&
-                    data.product?.selling_price !== undefined
+                        data.product?.selling_price !== undefined
                         ? String(data.product.selling_price)
                         : ""
                 );
 
-                setMessage(
-                    "This product is already registered in your product catalog."
-                );
-
+                setMessage("This product is already registered in your product catalog.");
                 return;
             }
 
@@ -281,7 +248,6 @@ function Products() {
                 setMessage(
                     "Product identified through Open Food Facts. Enter the selling price to add it to your catalog."
                 );
-
                 return;
             }
 
@@ -294,7 +260,6 @@ function Products() {
             setLoading(false);
         }
     };
-
 
     const startScanner = async () => {
         setError("");
@@ -310,15 +275,9 @@ function Products() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: {
-                        ideal: "environment"
-                    },
-                    width: {
-                        ideal: 1280
-                    },
-                    height: {
-                        ideal: 720
-                    }
+                    facingMode: { ideal: "environment" },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
                 },
                 audio: false
             });
@@ -356,43 +315,38 @@ function Products() {
             scanningRef.current = true;
             setScanning(true);
 
-            reader.decodeFromVideoElement(
-                videoRef.current,
-                (result) => {
-                    if (!scanningRef.current || !result) return;
+            reader.decodeFromVideoElement(videoRef.current, (result) => {
+                if (!scanningRef.current || !result) return;
 
-                    const detectedBarcode = result.getText();
+                const detectedBarcode = result.getText();
 
-                    if (!detectedBarcode || !/^\d+$/.test(detectedBarcode)) {
-                        lastDetectedRef.current = "";
-                        detectionCountRef.current = 0;
-                        return;
-                    }
-
-                    if (!isValidScannedBarcode(detectedBarcode)) {
-                        lastDetectedRef.current = "";
-                        detectionCountRef.current = 0;
-                        return;
-                    }
-
-                    if (lastDetectedRef.current === detectedBarcode) {
-                        detectionCountRef.current += 1;
-                    } else {
-                        lastDetectedRef.current = detectedBarcode;
-                        detectionCountRef.current = 1;
-                    }
-
-                    if (detectionCountRef.current < 2) return;
-
-                    scanningRef.current = false;
-                    setBarcode(detectedBarcode);
-
-                    stopCamera();
-                    setScannerOpen(false);
-
-                    lookupBarcode(detectedBarcode);
+                if (!detectedBarcode || !/^\d+$/.test(detectedBarcode)) {
+                    lastDetectedRef.current = "";
+                    detectionCountRef.current = 0;
+                    return;
                 }
-            );
+
+                if (!isValidScannedBarcode(detectedBarcode)) {
+                    lastDetectedRef.current = "";
+                    detectionCountRef.current = 0;
+                    return;
+                }
+
+                if (lastDetectedRef.current === detectedBarcode) {
+                    detectionCountRef.current += 1;
+                } else {
+                    lastDetectedRef.current = detectedBarcode;
+                    detectionCountRef.current = 1;
+                }
+
+                if (detectionCountRef.current < 2) return;
+
+                scanningRef.current = false;
+                setBarcode(detectedBarcode);
+                stopCamera();
+                setScannerOpen(false);
+                lookupBarcode(detectedBarcode);
+            });
         } catch (err) {
             console.error("Scanner error:", err);
 
@@ -401,9 +355,7 @@ function Products() {
             stopCamera();
 
             if (err?.name === "NotAllowedError") {
-                setError(
-                    "Camera permission was denied. Please allow camera access."
-                );
+                setError("Camera permission was denied. Please allow camera access.");
             } else if (err?.name === "NotFoundError") {
                 setError("No camera was found on this device.");
             } else {
@@ -412,12 +364,10 @@ function Products() {
         }
     };
 
-
     const closeScanner = () => {
         stopCamera();
         setScannerOpen(false);
     };
-
 
     const handlePriceChange = (event) => {
         const value = event.target.value;
@@ -427,14 +377,12 @@ function Products() {
         }
     };
 
-
     const isUnknownProduct = Boolean(
         product &&
         lookupMeta &&
         !lookupMeta.exists &&
         !lookupMeta.foundInApi
     );
-
 
     const canAddProduct = Boolean(
         product &&
@@ -443,14 +391,11 @@ function Products() {
         lookupMeta.foundInApi
     );
 
-
     const addProduct = async () => {
         if (!product || !canAddProduct) return;
 
         if (!String(product.product_name || "").trim()) {
-            setError(
-                "The product does not contain enough information to be registered."
-            );
+            setError("The product does not contain enough information to be registered.");
             return;
         }
 
@@ -474,9 +419,7 @@ function Products() {
             const response = await fetch(`${API_URL}/products`, {
                 method: "POST",
                 credentials: "include",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     barcode: product.barcode,
                     product_name: product.product_name,
@@ -508,7 +451,6 @@ function Products() {
 
             setSellingPrice(String(price));
             setMessage("Product added successfully.");
-
             await loadProducts();
         } catch (err) {
             console.error("Add product error:", err);
@@ -517,7 +459,6 @@ function Products() {
             setLoading(false);
         }
     };
-
 
     const openEditModal = (item) => {
         setEditingProduct(item);
@@ -534,12 +475,10 @@ function Products() {
         setMessage("");
     };
 
-
     const closeEditModal = () => {
         if (savingEdit) return;
         setEditingProduct(null);
     };
-
 
     const handleEditChange = (event) => {
         const { name, value } = event.target;
@@ -553,7 +492,6 @@ function Products() {
             [name]: value
         }));
     };
-
 
     const saveProductChanges = async () => {
         if (!editingProduct) return;
@@ -580,9 +518,7 @@ function Products() {
                 {
                     method: "PUT",
                     credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         product_name: editForm.product_name.trim(),
                         brand: editForm.brand.trim(),
@@ -602,7 +538,6 @@ function Products() {
 
             setEditingProduct(null);
             setMessage("Product updated successfully.");
-
             await loadProducts();
         } catch (err) {
             console.error("Update product error:", err);
@@ -611,7 +546,6 @@ function Products() {
             setSavingEdit(false);
         }
     };
-
 
     const filteredProducts = useMemo(() => {
         const search = searchTerm.trim().toLowerCase();
@@ -637,20 +571,10 @@ function Products() {
         });
     }, [products, searchTerm]);
 
-
     const activeProducts = useMemo(
         () => products.filter((item) => item.status === "active").length,
         [products]
     );
-
-
-    const apiProducts = useMemo(
-        () => products.filter((item) =>
-            String(item.api_source || "").toLowerCase().includes("open food facts")
-        ).length,
-        [products]
-    );
-
 
     const averagePrice = useMemo(() => {
         if (products.length === 0) return 0;
@@ -663,7 +587,6 @@ function Products() {
         return total / products.length;
     }, [products]);
 
-
     useEffect(() => {
         loadProducts();
 
@@ -672,22 +595,21 @@ function Products() {
         };
     }, []);
 
+    const openProductDetails = (item) => {
+        setSelectedProduct(item);
+    };
+
+    const closeProductDetails = () => {
+        setSelectedProduct(null);
+    };
 
     return (
         <div className="premium-products-page">
             <header className="products-modern-header">
                 <div>
-                    <span className="products-page-eyebrow">
-                        <Sparkles size={15} strokeWidth={2} />
-                        Product Intelligence
-                    </span>
 
                     <h1>Products</h1>
 
-                    <p>
-                        Identify products through barcode lookup and manage the items
-                        registered in your product catalog.
-                    </p>
                 </div>
 
                 <button
@@ -704,7 +626,6 @@ function Products() {
                     Refresh Catalog
                 </button>
             </header>
-
 
             <section className="products-summary-grid">
                 <article className="products-summary-card">
@@ -728,16 +649,6 @@ function Products() {
                 </article>
 
                 <article className="products-summary-card">
-                    <div className="products-summary-icon products-summary-purple">
-                        <Database size={21} strokeWidth={1.9} />
-                    </div>
-                    <div>
-                        <span>API Identified</span>
-                        <strong>{apiProducts}</strong>
-                    </div>
-                </article>
-
-                <article className="products-summary-card">
                     <div className="products-summary-icon products-summary-orange">
                         <Barcode size={21} strokeWidth={1.9} />
                     </div>
@@ -749,7 +660,6 @@ function Products() {
                     </div>
                 </article>
             </section>
-
 
             {error && (
                 <div className="products-message products-message-error">
@@ -765,7 +675,6 @@ function Products() {
                 </div>
             )}
 
-
             {message && (
                 <div className="products-message products-message-info">
                     <Info size={19} strokeWidth={2} />
@@ -780,21 +689,16 @@ function Products() {
                 </div>
             )}
 
-
             <section className="products-barcode-panel">
                 <div className="products-section-heading">
                     <div className="products-section-icon">
                         <ScanLine size={23} strokeWidth={1.9} />
                     </div>
                     <div>
-                        <span>Barcode Scanner</span>
                         <h2>Barcode Lookup</h2>
-                        <p>
-                            Enter a barcode manually or scan it using your camera.
-                        </p>
+                        <p>Enter a barcode manually or scan it using your camera.</p>
                     </div>
                 </div>
-
 
                 <div
                     className="products-barcode-workspace"
@@ -837,15 +741,10 @@ function Products() {
                             value={barcode}
                             onChange={(event) => {
                                 const value = event.target.value;
-
-                                if (/^\d*$/.test(value)) {
-                                    setBarcode(value);
-                                }
+                                if (/^\d*$/.test(value)) setBarcode(value);
                             }}
                             onKeyDown={(event) => {
-                                if (event.key === "Enter") {
-                                    lookupBarcode();
-                                }
+                                if (event.key === "Enter") lookupBarcode();
                             }}
                             placeholder="Enter product barcode"
                             inputMode="numeric"
@@ -948,7 +847,6 @@ function Products() {
                     </button>
                 </div>
 
-
                 <div className="products-barcode-help">
                     <Info size={15} strokeWidth={1.9} />
                     <span>
@@ -956,7 +854,6 @@ function Products() {
                     </span>
                 </div>
             </section>
-
 
             {scannerOpen && (
                 <div className="products-scanner-backdrop">
@@ -1007,7 +904,6 @@ function Products() {
                 </div>
             )}
 
-
             {isUnknownProduct && (
                 <section className="products-not-found-panel">
                     <div className="products-not-found-icon">
@@ -1052,7 +948,6 @@ function Products() {
                 </section>
             )}
 
-
             {product && !isUnknownProduct && (
                 <section className="products-result-panel">
                     <div className="products-result-header">
@@ -1079,7 +974,6 @@ function Products() {
                         </button>
                     </div>
 
-
                     <div className="products-result-content">
                         <div className="products-result-image-area">
                             <div className="products-result-image">
@@ -1097,7 +991,6 @@ function Products() {
                                 {formatProductCategory(product.category)}
                             </span>
                         </div>
-
 
                         <div className="products-result-details">
                             <div className="products-result-title">
@@ -1119,7 +1012,6 @@ function Products() {
                                     {formatProductBrand(product.brand)}
                                 </p>
                             </div>
-
 
                             <div className="products-detail-grid">
                                 <div>
@@ -1148,7 +1040,6 @@ function Products() {
                                     </strong>
                                 </div>
                             </div>
-
 
                             {canAddProduct && (
                                 <div className="products-price-registration">
@@ -1198,7 +1089,6 @@ function Products() {
                                 </div>
                             )}
 
-
                             {lookupMeta?.exists && (
                                 <div className="products-existing-product">
                                     <div>
@@ -1206,9 +1096,7 @@ function Products() {
 
                                         <div>
                                             <span>Already Registered</span>
-                                            <p>
-                                                This product is already in your catalog.
-                                            </p>
+                                            <p>This product is already in your catalog.</p>
                                         </div>
                                     </div>
 
@@ -1222,13 +1110,9 @@ function Products() {
                 </section>
             )}
 
-
             <section className="products-catalog-panel">
                 <div className="products-catalog-header">
                     <div>
-                        <span className="products-section-eyebrow">
-                            Registered Products
-                        </span>
 
                         <h2>Product Catalog</h2>
 
@@ -1259,7 +1143,6 @@ function Products() {
                         )}
                     </div>
                 </div>
-
 
                 {catalogLoading ? (
                     <div className="products-loading-state">
@@ -1319,10 +1202,25 @@ function Products() {
                                                 </div>
 
                                                 <div>
-                                                    <strong>{item.product_name}</strong>
-                                                    <span>
-                                                        Product #{item.product_id}
-                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openProductDetails(item)}
+                                                        aria-label={`View details for ${item.product_name}`}
+                                                        style={{
+                                                            display: "block",
+                                                            padding: 0,
+                                                            color: "inherit",
+                                                            background: "transparent",
+                                                            border: 0,
+                                                            font: "inherit",
+                                                            fontWeight: 700,
+                                                            textAlign: "left",
+                                                            cursor: "pointer"
+                                                        }}
+                                                    >
+                                                        {item.product_name}
+                                                    </button>
+                                                    <span>Product #{item.product_id}</span>
                                                 </div>
                                             </div>
                                         </td>
@@ -1391,6 +1289,103 @@ function Products() {
                 )}
             </section>
 
+            {selectedProduct && (
+                <div
+                    className="products-edit-backdrop"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            closeProductDetails();
+                        }
+                    }}
+                >
+                    <section
+                        className="products-edit-modal products-details-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="products-details-title"
+                    >
+                        <div className="products-edit-header">
+                            <div>
+                                <span>Product Catalog</span>
+                                <h2 id="products-details-title">
+                                    {selectedProduct.product_name || "Product details"}
+                                </h2>
+                                <p>Product #{selectedProduct.product_id}</p>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={closeProductDetails}
+                                aria-label="Close product details"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="products-result-content">
+                            <div className="products-result-image">
+                                {selectedProduct.image_url ? (
+                                    <img
+                                        src={selectedProduct.image_url}
+                                        alt={selectedProduct.product_name || "Product"}
+                                    />
+                                ) : (
+                                    <Package size={38} strokeWidth={1.5} />
+                                )}
+                            </div>
+
+                            <div className="products-detail-grid">
+                                <div>
+                                    <span>Barcode</span>
+                                    <strong className="products-mono">
+                                        {selectedProduct.barcode || "N/A"}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Brand</span>
+                                    <strong>
+                                        {formatProductBrand(selectedProduct.brand)}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Category</span>
+                                    <strong>
+                                        {formatProductCategory(selectedProduct.category)}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Unit / Size</span>
+                                    <strong>{selectedProduct.unit || "N/A"}</strong>
+                                </div>
+
+                                <div>
+                                    <span>Selling Price</span>
+                                    <strong>
+                                        {formatCurrency(selectedProduct.selling_price)}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Status</span>
+                                    <strong>
+                                        {selectedProduct.status || "active"}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Data Source</span>
+                                    <strong>
+                                        {selectedProduct.api_source || "Database"}
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            )}
 
             {editingProduct && (
                 <div
@@ -1413,9 +1408,7 @@ function Products() {
                                 <h2 id="products-edit-title">
                                     Update Product Information
                                 </h2>
-                                <p>
-                                    Product #{editingProduct.product_id}
-                                </p>
+                                <p>Product #{editingProduct.product_id}</p>
                             </div>
 
                             <button
@@ -1427,7 +1420,6 @@ function Products() {
                                 <X size={20} />
                             </button>
                         </div>
-
 
                         <div className="products-edit-fields">
                             <label>
@@ -1496,7 +1488,6 @@ function Products() {
                                 />
                             </label>
                         </div>
-
 
                         <div className="products-edit-footer">
                             <button

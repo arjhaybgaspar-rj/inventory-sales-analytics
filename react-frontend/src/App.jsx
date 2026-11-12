@@ -1,22 +1,14 @@
+import { ArrowLeft, ShieldX } from "lucide-react";
 
-import {
-    ArrowLeft,
-    ShieldX
-} from "lucide-react";
-
-import Users from "./pages/users/users.jsx";
+import Users from "./pages/users/Users.jsx";
 import AuditLogs from "./pages/audit-logs/AuditLogs.jsx";
-
 import Dashboard from "./pages/dashboard/Dashboard.jsx";
 import Inventory from "./pages/inventory/Inventory.jsx";
 import Products from "./pages/products/Products.jsx";
 import Reports from "./pages/reports/Reports.jsx";
 import Sales from "./pages/sales/Sales.jsx";
-
-import Profile from "./pages/profile/Profile.jsx";
-
+import Profile from "./pages/profile/profile.jsx";
 import Login from "./pages/login/Login.jsx";
-
 import Layout from "./components/Layout.jsx";
 
 import "./App.css";
@@ -24,50 +16,42 @@ import "./App.css";
 const ROUTES = {
     "/dashboard": {
         component: Dashboard,
-        roles: ["owner", "manager", "cashier"]
+        roles: ["admin", "manager", "cashier"]
     },
-
     "/products": {
         component: Products,
-        roles: ["owner", "manager"]
+        roles: ["manager"]
     },
-
     "/inventory": {
         component: Inventory,
-        roles: ["owner", "manager"]
+        roles: ["manager"]
     },
-
     "/sales": {
         component: Sales,
-        roles: ["owner", "manager", "cashier"]
+        roles: ["manager", "cashier"]
     },
-
     "/reports": {
         component: Reports,
-        roles: ["admin", "owner", "manager"]
+        roles: ["admin", "manager"]
     },
-
     "/profile": {
         component: Profile,
-        roles: ["admin", "owner", "manager", "cashier"]
+        roles: ["admin", "manager", "cashier"]
     },
     "/users": {
-    component: Users,
-    roles: ["admin"]
+        component: Users,
+        roles: ["admin"]
     },
-
     "/audit-logs": {
         component: AuditLogs,
         roles: ["admin"]
-    },
+    }
 };
 
 function getStoredUser() {
     const storedUser = localStorage.getItem("user");
 
-    if (!storedUser) {
-        return null;
-    }
+    if (!storedUser) return null;
 
     try {
         return JSON.parse(storedUser);
@@ -127,7 +111,7 @@ function App() {
         return null;
     }
 
-    const role = user.role?.toLowerCase();
+    const role = String(user.role || "").toLowerCase();
     const route = ROUTES[currentPath];
 
     if (!route) {

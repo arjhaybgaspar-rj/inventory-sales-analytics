@@ -145,10 +145,6 @@ function Login() {
                     </div>
 
                     <div className="auth-story-main">
-                        <span className="auth-kicker">
-                            <Sparkles size={15} strokeWidth={2} />
-                            SMARTER DAILY OPERATIONS
-                        </span>
 
                         <h1>
                             Know your stock.
@@ -156,10 +152,6 @@ function Login() {
                             Grow with clarity.
                         </h1>
 
-                        <p className="auth-story-description">
-                            One thoughtful workspace for product records, barcode scanning,
-                            inventory movement, point-of-sale transactions, and business insights.
-                        </p>
 
                         <div className="auth-preview-card" aria-label="Illustration of the inventory workspace">
                             <div className="auth-preview-topline">

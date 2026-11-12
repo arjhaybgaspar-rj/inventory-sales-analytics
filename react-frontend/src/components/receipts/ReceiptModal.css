@@ -1,0 +1,275 @@
+.receipt-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(15, 31, 24, 0.58);
+    backdrop-filter: blur(3px);
+}
+
+.receipt-modal {
+    width: min(100%, 620px);
+    max-height: min(88vh, 820px);
+    overflow: auto;
+    padding: 26px;
+    border: 1px solid #e3ebe5;
+    border-radius: 18px;
+    background: #fff;
+    color: #18372a;
+    box-shadow: 0 24px 70px rgba(12, 34, 23, 0.25);
+}
+
+.receipt-modal-header,
+.receipt-modal-actions,
+.receipt-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.receipt-modal-header {
+    padding-bottom: 18px;
+    border-bottom: 1px solid #e8eee9;
+}
+
+.receipt-modal-eyebrow,
+.receipt-summary span {
+    display: block;
+    color: #6c8174;
+    font-size: 12px;
+}
+
+.receipt-modal-header h2 {
+    margin: 4px 0 0;
+    font-size: 23px;
+}
+
+.receipt-icon-button {
+    width: 38px;
+    height: 38px;
+    border: 1px solid #dce7df;
+    border-radius: 50%;
+    background: #fff;
+    color: #234b37;
+    font-size: 25px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.receipt-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px 20px;
+    padding: 20px 0;
+    border-bottom: 1px solid #e8eee9;
+}
+
+.receipt-summary strong {
+    display: block;
+    margin-top: 4px;
+    color: #203d2e;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
+.receipt-payment-label {
+    text-transform: uppercase;
+}
+
+.receipt-items-wrap {
+    overflow-x: auto;
+}
+
+.receipt-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    font-size: 13px;
+}
+
+.receipt-items-table th {
+    padding: 10px 8px;
+    color: #6c8174;
+    text-align: right;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.receipt-items-table th:first-child,
+.receipt-items-table td:first-child {
+    text-align: left;
+}
+
+.receipt-items-table td {
+    padding: 12px 8px;
+    border-top: 1px solid #edf1ee;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.receipt-items-table td:first-child {
+    white-space: normal;
+    min-width: 150px;
+}
+
+.receipt-items-table td strong,
+.receipt-items-table td small {
+    display: block;
+}
+
+.receipt-items-table td small {
+    margin-top: 3px;
+    color: #788a7f;
+    font-size: 11px;
+}
+
+.receipt-empty-items,
+.receipt-state {
+    padding: 24px 8px;
+    color: #6c8174;
+    text-align: center;
+}
+
+.receipt-error {
+    color: #a33c32;
+}
+
+.receipt-error p {
+    margin: 0 0 14px;
+}
+
+.receipt-total-row {
+    margin-top: 12px;
+    padding-top: 17px;
+    border-top: 1px solid #dce7df;
+}
+
+.receipt-total-row span {
+    color: #456452;
+    font-weight: 600;
+}
+
+.receipt-total-row strong {
+    font-size: 23px;
+    color: #145c46;
+}
+
+.receipt-modal-actions {
+    justify-content: flex-end;
+    margin-top: 22px;
+}
+
+.receipt-primary-button,
+.receipt-secondary-button {
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.receipt-primary-button {
+    border: 1px solid #145c46;
+    background: #145c46;
+    color: #fff;
+}
+
+.receipt-secondary-button {
+    border: 1px solid #dce7df;
+    background: #fff;
+    color: #234b37;
+}
+
+.receipt-primary-button:hover {
+    background: #0f4938;
+}
+
+.receipt-secondary-button:hover,
+.receipt-icon-button:hover {
+    background: #f3f8f4;
+}
+
+@media (max-width: 520px) {
+    .receipt-modal-backdrop {
+        padding: 10px;
+    }
+
+    .receipt-modal {
+        padding: 19px 15px;
+        border-radius: 14px;
+    }
+
+    .receipt-summary {
+        gap: 13px;
+    }
+
+    .receipt-items-table {
+        font-size: 12px;
+    }
+}
+
+
+.botanical-receipt-link,
+.reports-receipt-link {
+    display: inline;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #145c46;
+    font: inherit;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+}
+
+.botanical-receipt-link:hover,
+.reports-receipt-link:hover {
+    text-decoration: underline;
+}
+
+.botanical-receipt-link:focus-visible,
+.reports-receipt-link:focus-visible {
+    outline: 2px solid #2e9d74;
+    outline-offset: 3px;
+    border-radius: 3px;
+}
+
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+
+    #receipt-print-area,
+    #receipt-print-area * {
+        visibility: visible !important;
+    }
+
+    #receipt-print-area {
+        position: fixed;
+        inset: 0 auto auto 0;
+        width: 100%;
+        max-height: none;
+        overflow: visible;
+        padding: 12mm;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .receipt-modal-backdrop {
+        position: static;
+        display: block;
+        padding: 0;
+        background: #fff;
+    }
+
+    .receipt-screen-only,
+    .receipt-close-button {
+        display: none !important;
+    }
+}

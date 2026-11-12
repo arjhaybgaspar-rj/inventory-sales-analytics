@@ -1,15 +1,11 @@
-
 import {
     Boxes,
     ChartNoAxesCombined,
-    ChevronRight,
+    ClipboardList,
     LayoutDashboard,
     LogOut,
     PackageSearch,
     ShoppingCart,
-    UserRound,
-    Pencil,
-    ClipboardList,
     Users
 } from "lucide-react";
 
@@ -51,19 +47,14 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
         { label: "Sales / POS", path: "/sales", icon: ShoppingCart }
     ];
 
-    const ownerNavigation = [
-        { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-        { label: "Products", path: "/products", icon: PackageSearch },
-        { label: "Inventory", path: "/inventory", icon: Boxes },
-        { label: "Sales / POS", path: "/sales", icon: ShoppingCart },
-        { label: "Reports & Analytics", path: "/reports", icon: ChartNoAxesCombined }
-    ];
-
     const navigationItems =
-        role === "admin" ? adminNavigation :
-        role === "manager" ? managerNavigation :
-        role === "cashier" ? cashierNavigation :
-        role === "owner" ? ownerNavigation : [];
+        role === "admin"
+            ? adminNavigation
+            : role === "manager"
+              ? managerNavigation
+              : role === "cashier"
+                ? cashierNavigation
+                : [];
 
     const navigate = (path) => {
         onNavigate();
@@ -105,6 +96,8 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
         ? role.charAt(0).toUpperCase() + role.slice(1)
         : "Account";
 
+    const isProfileActive = currentPath === "/profile";
+
     return (
         <aside
             className={`sage-sidebar${isOpen ? " is-open" : ""}`}
@@ -112,7 +105,7 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
         >
             <div className="sage-sidebar-brand">
                 <span className="sage-sidebar-brand-mark" aria-hidden="true">
-                    <img src={ISA} alt="Inventory Sales Analytics" />
+                    <img src={ISA} alt="" />
                 </span>
 
                 <span className="sage-sidebar-brand-copy">
@@ -128,7 +121,7 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
                     {role === "admin" ? "ADMINISTRATION" : "WORKSPACE"}
                 </p>
 
-                <nav className="sage-sidebar-nav">
+                <nav className="sage-sidebar-nav" aria-label="Workspace">
                     {navigationItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = currentPath === item.path;
@@ -140,22 +133,14 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
                                 className={`sage-sidebar-nav-item${isActive ? " active" : ""}`}
                                 onClick={() => navigate(item.path)}
                                 aria-current={isActive ? "page" : undefined}
-                                title={item.label}
                             >
                                 <span className="sage-sidebar-nav-icon" aria-hidden="true">
-                                    <Icon size={19} strokeWidth={1.9} />
+                                    <Icon size={18} strokeWidth={1.8} />
                                 </span>
 
                                 <span className="sage-sidebar-nav-label">
                                     {item.label}
                                 </span>
-
-                                <ChevronRight
-                                    className="sage-sidebar-nav-arrow"
-                                    size={16}
-                                    strokeWidth={1.9}
-                                    aria-hidden="true"
-                                />
                             </button>
                         );
                     })}
@@ -163,26 +148,15 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
             </div>
 
             <div className="sage-sidebar-bottom">
-                <div className="sage-sidebar-note">
-                    <span className="sage-sidebar-note-icon" aria-hidden="true">
-                        <PackageSearch size={18} strokeWidth={1.9} />
-                    </span>
-
-                    <div>
-                        <strong>Stay in control</strong>
-                        <span>Stock, sales, and insights in one place.</span>
-                    </div>
-                </div>
-
                 <div className="sage-sidebar-divider sage-sidebar-bottom-divider" />
 
                 <div className="sage-sidebar-user">
                     <button
                         type="button"
-                        className={`sage-sidebar-user-profile${currentPath === "/profile" ? " active" : ""}`}
+                        className={`sage-sidebar-user-profile${isProfileActive ? " active" : ""}`}
                         onClick={() => navigate("/profile")}
-                        title="View and edit your profile"
-                        aria-current={currentPath === "/profile" ? "page" : undefined}
+                        aria-current={isProfileActive ? "page" : undefined}
+                        aria-label={`Open profile for ${user?.full_name || "User"}`}
                     >
                         <span className="sage-sidebar-avatar" aria-hidden="true">
                             {getInitials()}
@@ -192,15 +166,8 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
                             <strong title={user?.full_name || "User"}>
                                 {user?.full_name || "User"}
                             </strong>
-
                             <span>{roleLabel}</span>
                         </span>
-
-                        <Pencil
-                            className="sage-sidebar-profile-edit"
-                            size={15}
-                            aria-hidden="true"
-                        />
                     </button>
 
                     <button
@@ -208,7 +175,7 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
                         className="sage-sidebar-logout"
                         onClick={handleLogout}
                     >
-                        <LogOut size={17} strokeWidth={1.9} />
+                        <LogOut size={16} strokeWidth={1.8} aria-hidden="true" />
                         <span>Log out</span>
                     </button>
                 </div>

@@ -25,9 +25,12 @@ import {
 } from "react";
 
 import { API_URL } from "../../services/api";
+import ReceiptModal from "../../components/receipts/ReceiptModal.jsx";
+import Reports from "../reports/Reports.jsx";
+
 import "./Dashboard.css";
 
-const MANAGER_ROLES = ["admin", "owner", "manager"];
+const MANAGER_ROLES = ["admin", "manager"];
 
 function readStoredUser() {
     try {
@@ -73,19 +76,21 @@ function formatDate(value, includeTime = false) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "—";
 
-    return new Intl.DateTimeFormat("en-PH", includeTime
-        ? {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "numeric",
-            minute: "2-digit"
-        }
-        : {
-            month: "short",
-            day: "numeric",
-            year: "numeric"
-        }
+    return new Intl.DateTimeFormat(
+        "en-PH",
+        includeTime
+            ? {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+                hour: "numeric",
+                minute: "2-digit"
+            }
+            : {
+                month: "short",
+                day: "numeric",
+                year: "numeric"
+            }
     ).format(date);
 }
 
@@ -103,7 +108,9 @@ function getInventoryStatus(item) {
     if (quantity <= 0) return "out";
 
     if (item.expiry_date) {
-        const expiry = new Date(`${String(item.expiry_date).slice(0, 10)}T00:00:00`);
+        const expiry = new Date(
+            `${String(item.expiry_date).slice(0, 10)}T00:00:00`
+        );
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -128,20 +135,57 @@ const STATUS_LABELS = {
     expired: "Expired"
 };
 
+const STATUS_DESCRIPTIONS = {
+    healthy: "Above the reorder level",
+    low: "At or below the reorder level",
+    expiring: "Expires within 30 days",
+    out: "No usable units in stock",
+    expired: "Past its expiry date"
+};
+
+const STATUS_STYLES = {
+    healthy: {
+        color: "#21845f",
+        backgroundColor: "#e8f5ed"
+    },
+    low: {
+        color: "#b77900",
+        backgroundColor: "#fff3d4"
+    },
+    expiring: {
+        color: "#087e8b",
+        backgroundColor: "#e2f4f6"
+    },
+    out: {
+        color: "#c62828",
+        backgroundColor: "#fdeaea"
+    },
+    expired: {
+        color: "#465362",
+        backgroundColor: "#edf1f4"
+    }
+};
+
 function Dashboard() {
     const [user] = useState(readStoredUser);
     const [summary, setSummary] = useState(null);
     const [inventory, setInventory] = useState([]);
     const [recentSales, setRecentSales] = useState([]);
+    const [stockoutRisks, setStockoutRisks] = useState([]);
+    const [stockoutHistoryGaps, setStockoutHistoryGaps] = useState([]);
+    const [revenueTrend, setRevenueTrend] = useState(null);
     const [cashierProducts, setCashierProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState("");
+    const [selectedReceiptId, setSelectedReceiptId] = useState(null);
 
     const role = String(user?.role || "").toLowerCase();
     const canManage = MANAGER_ROLES.includes(role);
     const displayName = user?.full_name || user?.username || "there";
     const firstName = displayName.trim().split(/\s+/)[0] || "there";
-    const roleLabel = role ? role.charAt(0).toUpperCase() + role.slice(1) : "User";
+    const roleLabel = role
+        ? role.charAt(0).toUpperCase() + role.slice(1)
+        : "User";
 
     const loadDashboard = useCallback(async () => {
         if (!user) {
@@ -154,10 +198,16 @@ function Dashboard() {
 
         try {
             if (canManage) {
-                const [summaryResult, inventoryResult, salesResult] = await Promise.all([
+                const [
+                    summaryResult,
+                    inventoryResult,
+                    salesResult,
+                    riskResult
+                ] = await Promise.all([
                     fetchJson("/reports/summary"),
                     fetchJson("/inventory"),
-                    fetchJson("/reports/recent-sales")
+                    fetchJson("/reports/recent-sales"),
+                    fetchJson("/reports/inventory-risk")
                 ]);
 
                 if (summaryResult.ok) {
@@ -165,19 +215,48 @@ function Dashboard() {
                 }
 
                 if (inventoryResult.ok) {
-                    setInventory(Array.isArray(inventoryResult.data.inventory)
-                        ? inventoryResult.data.inventory
-                        : []);
+                    setInventory(
+                        Array.isArray(inventoryResult.data.inventory)
+                            ? inventoryResult.data.inventory
+                            : []
+                    );
                 }
 
                 if (salesResult.ok) {
-                    setRecentSales(Array.isArray(salesResult.data.sales)
-                        ? salesResult.data.sales
-                        : []);
+                    setRecentSales(
+                        Array.isArray(salesResult.data.sales)
+                            ? salesResult.data.sales
+                            : []
+                    );
                 }
 
-                if (!summaryResult.ok || !inventoryResult.ok || !salesResult.ok) {
-                    setMessage("Some dashboard information could not be loaded. Use Refresh to try again.");
+                if (riskResult.ok) {
+                    setStockoutRisks(
+                        Array.isArray(riskResult.data.stockout_risks)
+                            ? riskResult.data.stockout_risks
+                            : []
+                    );
+                    setStockoutHistoryGaps(
+                        Array.isArray(riskResult.data.insufficient_demand_history)
+                            ? riskResult.data.insufficient_demand_history
+                            : []
+                    );
+                    setRevenueTrend(riskResult.data.revenue_trend || null);
+                } else {
+                    setStockoutRisks([]);
+                    setStockoutHistoryGaps([]);
+                    setRevenueTrend(null);
+                }
+
+                if (
+                    !summaryResult.ok ||
+                    !inventoryResult.ok ||
+                    !salesResult.ok ||
+                    !riskResult.ok
+                ) {
+                    setMessage(
+                        "Some dashboard information could not be loaded. Use Refresh to try again."
+                    );
                 }
             } else {
                 // Cashiers must not call manager-only report or inventory endpoints.
@@ -187,24 +266,32 @@ function Dashboard() {
                 ]);
 
                 if (salesResult.ok) {
-                    setRecentSales(Array.isArray(salesResult.data.sales)
-                        ? salesResult.data.sales
-                        : []);
+                    setRecentSales(
+                        Array.isArray(salesResult.data.sales)
+                            ? salesResult.data.sales
+                            : []
+                    );
                 }
 
                 if (productsResult.ok) {
-                    setCashierProducts(Array.isArray(productsResult.data.products)
-                        ? productsResult.data.products
-                        : []);
+                    setCashierProducts(
+                        Array.isArray(productsResult.data.products)
+                            ? productsResult.data.products
+                            : []
+                    );
                 }
 
                 if (!salesResult.ok || !productsResult.ok) {
-                    setMessage("Some dashboard information could not be loaded. Use Refresh to try again.");
+                    setMessage(
+                        "Some dashboard information could not be loaded. Use Refresh to try again."
+                    );
                 }
             }
         } catch (error) {
             console.error("Dashboard loading error:", error);
-            setMessage("Unable to connect to the backend. Check that the backend server is running.");
+            setMessage(
+                "Unable to connect to the backend. Check that the backend server is running."
+            );
         } finally {
             setLoading(false);
         }
@@ -237,9 +324,15 @@ function Dashboard() {
         return counts;
     }, [inventory]);
 
-    const cashierSalesTotal = useMemo(() => (
-        recentSales.reduce((total, sale) => total + (Number(sale.total_amount) || 0), 0)
-    ), [recentSales]);
+    const cashierSalesTotal = useMemo(
+        () =>
+            recentSales.reduce(
+                (total, sale) =>
+                    total + (Number(sale.total_amount) || 0),
+                0
+            ),
+        [recentSales]
+    );
 
     const cashierAverageSale = recentSales.length
         ? cashierSalesTotal / recentSales.length
@@ -311,13 +404,43 @@ function Dashboard() {
 
     const quickActions = canManage
         ? [
-            { label: "Manage products", description: "Review the product catalog", icon: Package, path: "/products", tone: "sage" },
-            { label: "Manage inventory", description: "Stock-in and monitor alerts", icon: Boxes, path: "/inventory", tone: "green" },
-            { label: "Open point of sale", description: "Create a sales transaction", icon: ShoppingCart, path: "/sales", tone: "orange" },
-            { label: "View reports", description: "Review sales analytics", icon: TrendingUp, path: "/reports", tone: "olive" }
+            {
+                label: "Manage products",
+                description: "Review the product catalog",
+                icon: Package,
+                path: "/products",
+                tone: "sage"
+            },
+            {
+                label: "Manage inventory",
+                description: "Stock-in and monitor alerts",
+                icon: Boxes,
+                path: "/inventory",
+                tone: "green"
+            },
+            {
+                label: "Open point of sale",
+                description: "Create a sales transaction",
+                icon: ShoppingCart,
+                path: "/sales",
+                tone: "orange"
+            },
+            {
+                label: "View reports",
+                description: "Review sales analytics",
+                icon: TrendingUp,
+                path: "/reports",
+                tone: "olive"
+            }
         ]
         : [
-            { label: "Open point of sale", description: "Create a sales transaction", icon: ShoppingCart, path: "/sales", tone: "orange" }
+            {
+                label: "Open point of sale",
+                description: "Create a sales transaction",
+                icon: ShoppingCart,
+                path: "/sales",
+                tone: "orange"
+            }
         ];
 
     const goTo = (path) => window.location.assign(path);
@@ -346,7 +469,10 @@ function Dashboard() {
                         onClick={loadDashboard}
                         disabled={loading}
                     >
-                        <RefreshCw size={16} className={loading ? "botanical-spin" : ""} />
+                        <RefreshCw
+                            size={16}
+                            className={loading ? "botanical-spin" : ""}
+                        />
                         {loading ? "Refreshing" : "Refresh"}
                     </button>
                 </div>
@@ -355,25 +481,29 @@ function Dashboard() {
             <section className="botanical-welcome-banner">
                 <div className="botanical-welcome-copy">
                     <span className="botanical-welcome-label">
-                        <Sparkles size={15} />
                         Your daily overview
                     </span>
                     <h2>Everything in its place.</h2>
-                    <p>
-                        {canManage
-                            ? "Monitor sales performance, inventory health, and recent activity from one calm workspace."
-                            : "Keep checkout moving and review your recent sales activity from one place."}
-                    </p>
+
                     <div className="botanical-welcome-meta">
-                        <span className="botanical-role-chip">{roleLabel} account</span>
-                        <span><Clock3 size={14} /> Updated when you refresh</span>
+                        <span className="botanical-role-chip">
+                            {roleLabel} account
+                        </span>
+                        <span>
+                            <Clock3 size={14} /> Updated when you refresh
+                        </span>
                     </div>
                 </div>
+
                 <div className="botanical-welcome-art" aria-hidden="true">
                     <div className="botanical-art-circle botanical-art-circle-one" />
                     <div className="botanical-art-circle botanical-art-circle-two" />
-                    <div className="botanical-art-leaf botanical-art-leaf-one"><Leaf size={65} strokeWidth={1.15} /></div>
-                    <div className="botanical-art-leaf botanical-art-leaf-two"><Leaf size={43} strokeWidth={1.15} /></div>
+                    <div className="botanical-art-leaf botanical-art-leaf-one">
+                        <Leaf size={65} strokeWidth={1.15} />
+                    </div>
+                    <div className="botanical-art-leaf botanical-art-leaf-two">
+                        <Leaf size={43} strokeWidth={1.15} />
+                    </div>
                     <div className="botanical-art-card">
                         <Activity size={23} />
                         <span>Business overview</span>
@@ -386,22 +516,37 @@ function Dashboard() {
                 <div className="botanical-dashboard-message" role="status">
                     <AlertTriangle size={18} />
                     <span>{message}</span>
-                    <button type="button" onClick={() => setMessage("")} aria-label="Dismiss message">×</button>
+                    <button
+                        type="button"
+                        onClick={() => setMessage("")}
+                        aria-label="Dismiss message"
+                    >
+                        ×
+                    </button>
                 </div>
             )}
 
-            <section className={`botanical-kpi-grid ${canManage ? "botanical-kpi-grid-manager" : ""}`} aria-label="Business metrics">
+            <section
+                className={`botanical-kpi-grid ${canManage ? "botanical-kpi-grid-manager" : ""
+                    }`}
+                aria-label="Business metrics"
+            >
                 {kpis.map((item) => {
                     const Icon = item.icon;
+
                     return (
-                        <article className="botanical-kpi-card" key={item.label}>
-                            <div className={`botanical-kpi-icon tone-${item.tone}`}>
+                        <article
+                            className="botanical-kpi-card"
+                            key={item.label}
+                        >
+                            <div
+                                className={`botanical-kpi-icon tone-${item.tone}`}
+                            >
                                 <Icon size={22} strokeWidth={1.85} />
                             </div>
                             <div className="botanical-kpi-copy">
                                 <span>{item.label}</span>
                                 <strong>{loading ? "—" : item.value}</strong>
-                                <small>{item.note}</small>
                             </div>
                         </article>
                     );
@@ -413,15 +558,21 @@ function Dashboard() {
                     <article className="botanical-panel botanical-stock-health-panel">
                         <div className="botanical-panel-heading">
                             <div>
-                                <span className="botanical-panel-eyebrow">Stock monitoring</span>
+                                <span className="botanical-panel-eyebrow">
+                                    Stock monitoring
+                                </span>
                                 <h2>Inventory health</h2>
-                                <p>Batch-level status based on quantity and expiry date.</p>
+
                             </div>
-                            <span className="botanical-panel-heading-icon"><Boxes size={20} /></span>
+                            <span className="botanical-panel-heading-icon">
+                                <Boxes size={20} />
+                            </span>
                         </div>
 
                         {loading ? (
-                            <div className="botanical-panel-loading">Loading stock status…</div>
+                            <div className="botanical-panel-loading">
+                                Loading stock status…
+                            </div>
                         ) : inventory.length === 0 ? (
                             <div className="botanical-panel-empty">
                                 <Package size={27} />
@@ -433,79 +584,163 @@ function Dashboard() {
                                 <div className="botanical-stock-total">
                                     <div>
                                         <span>Recorded batches</span>
-                                        <strong>{formatNumber(inventory.length)}</strong>
+                                        <strong>
+                                            {formatNumber(inventory.length)}
+                                        </strong>
                                     </div>
-                                    <div className="botanical-stock-total-mark"><CheckCircle2 size={19} /></div>
+                                    <div className="botanical-stock-total-mark">
+                                        <CheckCircle2 size={19} />
+                                    </div>
                                 </div>
-                                <div className="botanical-stock-bar" aria-label="Inventory health distribution">
-                                    {[
-                                        ["healthy", "#66886b"],
-                                        ["low", "#d9764c"],
-                                        ["expiring", "#b6a16c"],
-                                        ["out", "#c85c4d"],
-                                        ["expired", "#a8443a"]
-                                    ].map(([key, color]) => (
+
+                                <div
+                                    className="botanical-stock-bar"
+                                    aria-label="Inventory health distribution"
+                                >
+                                    {Object.keys(STATUS_LABELS).map((key) => (
                                         <span
                                             key={key}
+                                            title={`${STATUS_LABELS[key]}: ${stockCounts[key]}`}
                                             style={{
-                                                width: `${(stockCounts[key] / inventory.length) * 100}%`,
-                                                backgroundColor: color
+                                                width: `${(stockCounts[key] /
+                                                    inventory.length) *
+                                                    100
+                                                    }%`,
+                                                backgroundColor:
+                                                    STATUS_STYLES[key].color
                                             }}
                                         />
                                     ))}
                                 </div>
+
                                 <div className="botanical-stock-legend">
-                                    {[
-                                        ["healthy", "Available", "#66886b"],
-                                        ["low", "Low stock", "#d9764c"],
-                                        ["expiring", "Expiring soon", "#b6a16c"],
-                                        ["out", "Out of stock", "#c85c4d"],
-                                        ["expired", "Expired", "#a8443a"]
-                                    ].map(([key, label, color]) => (
-                                        <div className="botanical-stock-legend-item" key={key}>
-                                            <span className="botanical-legend-dot" style={{ backgroundColor: color }} />
-                                            <span>{label}</span>
+                                    {Object.keys(STATUS_LABELS).map((key) => (
+                                        <div
+                                            className="botanical-stock-legend-item"
+                                            key={key}
+                                        >
+                                            <span
+                                                className="botanical-legend-dot"
+                                                style={{
+                                                    backgroundColor:
+                                                        STATUS_STYLES[key].color
+                                                }}
+                                                aria-hidden="true"
+                                            />
+
+                                            <span
+                                                style={{
+                                                    display: "flex",
+                                                    flex: 1,
+                                                    flexDirection: "column",
+                                                    gap: "2px",
+                                                    whiteSpace: "normal"
+                                                }}
+                                            >
+                                                <span>{STATUS_LABELS[key]}</span>
+                                                <small
+                                                    style={{
+                                                        color: "#63786d",
+                                                        fontSize: "10px",
+                                                        fontWeight: 400,
+                                                        lineHeight: 1.35
+                                                    }}
+                                                >
+                                                    {STATUS_DESCRIPTIONS[key]}
+                                                </small>
+                                            </span>
+
                                             <strong>{stockCounts[key]}</strong>
                                         </div>
                                     ))}
                                 </div>
-                                <button type="button" className="botanical-text-link" onClick={() => goTo("/inventory")}>
+
+                                <button
+                                    type="button"
+                                    className="botanical-text-link"
+                                    onClick={() => goTo("/inventory")}
+                                >
                                     Review inventory <ArrowRight size={15} />
                                 </button>
                             </>
                         )}
                     </article>
 
+                    <article className="botanical-dashboard-analytics">
+                        {canManage ? <Reports dashboardEmbedded /> : (
+                            <div className="botanical-panel-empty">
+                                Sales analytics are available to managers.
+                            </div>
+                        )}
+                    </article>
+
                     <article className="botanical-panel botanical-business-snapshot">
                         <div className="botanical-panel-heading">
                             <div>
-                                <span className="botanical-panel-eyebrow">Business snapshot</span>
-                                <h2>Items to keep an eye on</h2>
-                                <p>Key counts from your inventory summary.</p>
+                                <h2>Products that may run out</h2>
                             </div>
-                            <span className="botanical-panel-heading-icon botanical-heading-icon-orange"><TrendingUp size={20} /></span>
+                            <span className="botanical-panel-heading-icon botanical-heading-icon-orange">
+                                <AlertTriangle size={20} />
+                            </span>
                         </div>
 
-                        <div className="botanical-snapshot-list">
-                            <div className="botanical-snapshot-row">
-                                <span className="botanical-snapshot-icon snapshot-icon-green"><Package size={18} /></span>
-                                <div><strong>Product catalog</strong><span>Products registered in the system</span></div>
-                                <b>{loading ? "—" : formatNumber(summary?.total_products)}</b>
+                        {loading ? (
+                            <div className="botanical-panel-loading botanical-stockout-loading">
+                                Checking sales and stock…
                             </div>
-                            <div className="botanical-snapshot-row">
-                                <span className="botanical-snapshot-icon snapshot-icon-orange"><AlertTriangle size={18} /></span>
-                                <div><strong>Low-stock items</strong><span>Items at or below reorder level</span></div>
-                                <b>{loading ? "—" : formatNumber(summary?.low_stock_items)}</b>
+                        ) : stockoutRisks.length === 0 &&
+                            stockoutHistoryGaps.length === 0 ? (
+                            <div className="botanical-panel-empty botanical-stockout-empty">
+                                <CheckCircle2 size={25} />
+                                <strong>No current run-out warnings</strong>
                             </div>
-                            <div className="botanical-snapshot-row">
-                                <span className="botanical-snapshot-icon snapshot-icon-sand"><Clock3 size={18} /></span>
-                                <div><strong>Expiring soon</strong><span>Items nearing their expiry date</span></div>
-                                <b>{loading ? "—" : formatNumber(summary?.expiring_items)}</b>
+                        ) : (
+                            <div className="botanical-snapshot-list">
+                                {stockoutRisks.slice(0, 3).map((item) => (
+                                    <div
+                                        className="botanical-snapshot-row"
+                                        key={item.product_id}
+                                    >
+                                        <div>
+                                            <strong>{item.product_name}</strong>
+                                            <span>
+                                                May run out in about {item.estimated_days_until_stockout} days · {item.available_stock} available
+                                            </span>
+                                        </div>
+                                        <b>
+                                            {item.risk_level === "high" ? "High risk" : "Watch"}
+                                        </b>
+                                    </div>
+                                ))}
+                                {stockoutHistoryGaps.slice(0, 3).map((item) => (
+                                    <div
+                                        className="botanical-snapshot-row"
+                                        key={`history-${item.product_id}`}
+                                    >
+                                        <div>
+                                            <strong>{item.product_name}</strong>
+                                            <span>
+                                                Sales recorded on {item.sales_days_last_30_days} of 7 days so far
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                                {stockoutHistoryGaps.length > 3 && (
+                                    <div className="botanical-stockout-history-summary">
+                                        <span>
+                                            +{stockoutHistoryGaps.length - 3} products need more sales history
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                        </div>
+                        )}
 
-                        <button type="button" className="botanical-text-link" onClick={() => goTo("/reports")}>
-                            Open reports <ArrowRight size={15} />
+                        <button
+                            type="button"
+                            className="botanical-text-link botanical-stockout-link"
+                            onClick={() => goTo("/reports")}
+                        >
+                            See all stock alerts <ArrowRight size={15} />
                         </button>
                     </article>
                 </section>
@@ -517,12 +752,18 @@ function Dashboard() {
                         <span className="botanical-panel-eyebrow">Shortcuts</span>
                         <h2>Quick actions</h2>
                     </div>
-                    <span className="botanical-section-note">Jump straight into your workflow</span>
+                    <span className="botanical-section-note">
+                        Jump straight into your workflow
+                    </span>
                 </div>
 
-                <div className={`botanical-quick-actions ${canManage ? "" : "botanical-quick-actions-cashier"}`}>
+                <div
+                    className={`botanical-quick-actions ${canManage ? "" : "botanical-quick-actions-cashier"
+                        }`}
+                >
                     {quickActions.map((action) => {
                         const Icon = action.icon;
+
                         return (
                             <button
                                 type="button"
@@ -530,9 +771,18 @@ function Dashboard() {
                                 key={action.path}
                                 onClick={() => goTo(action.path)}
                             >
-                                <span className={`botanical-quick-action-icon tone-${action.tone}`}><Icon size={21} /></span>
-                                <span className="botanical-quick-action-copy"><strong>{action.label}</strong><small>{action.description}</small></span>
-                                <ArrowRight size={17} className="botanical-quick-action-arrow" />
+                                <span
+                                    className={`botanical-quick-action-icon tone-${action.tone}`}
+                                >
+                                    <Icon size={21} />
+                                </span>
+                                <span className="botanical-quick-action-copy">
+                                    <strong>{action.label}</strong>
+                                </span>
+                                <ArrowRight
+                                    size={17}
+                                    className="botanical-quick-action-arrow"
+                                />
                             </button>
                         );
                     })}
@@ -542,22 +792,31 @@ function Dashboard() {
             <section className="botanical-panel botanical-recent-sales-panel">
                 <div className="botanical-panel-heading botanical-panel-heading-with-action">
                     <div>
-                        <span className="botanical-panel-eyebrow">Latest activity</span>
+                        <span className="botanical-panel-eyebrow">
+                            Latest activity
+                        </span>
                         <h2>Recent sales</h2>
-                        <p>Most recent sales records returned by the system.</p>
                     </div>
-                    <button type="button" className="botanical-outline-button" onClick={() => goTo("/sales")}>
+                    <button
+                        type="button"
+                        className="botanical-outline-button"
+                        onClick={() => goTo("/sales")}
+                    >
                         Open POS <ArrowRight size={15} />
                     </button>
                 </div>
 
                 {loading ? (
-                    <div className="botanical-panel-loading">Loading recent sales…</div>
+                    <div className="botanical-panel-loading">
+                        Loading recent sales…
+                    </div>
                 ) : recentSales.length === 0 ? (
                     <div className="botanical-panel-empty">
                         <ShoppingCart size={28} />
                         <strong>No sales recorded yet</strong>
-                        <span>Completed transactions will appear in this table.</span>
+                        <span>
+                            Completed transactions will appear in this table.
+                        </span>
                     </div>
                 ) : (
                     <div className="botanical-table-wrap">
@@ -568,22 +827,55 @@ function Dashboard() {
                                     <th>Cashier</th>
                                     <th>Payment method</th>
                                     <th>Date</th>
-                                    <th className="botanical-table-number">Total</th>
+                                    <th className="botanical-table-number">
+                                        Total
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {recentSales.slice(0, 6).map((sale, index) => (
-                                    <tr key={sale.sale_id ?? `${sale.sale_date}-${index}`}>
+                                    <tr
+                                        key={
+                                            sale.sale_id ??
+                                            `${sale.sale_date}-${index}`
+                                        }
+                                    >
                                         <td>
                                             <div className="botanical-transaction-cell">
-                                                <span className="botanical-transaction-icon"><ShoppingBag size={16} /></span>
-                                                <span><strong>Sale #{sale.sale_id ?? "—"}</strong><small>Completed transaction</small></span>
+                                                <span>
+                                                    <button
+                                                        type="button"
+                                                        className="botanical-receipt-link"
+                                                        onClick={() =>
+                                                            setSelectedReceiptId(
+                                                                sale.sale_id
+                                                            )
+                                                        }
+                                                        aria-label={`View receipt for sale ${sale.sale_id}`}
+                                                    >
+                                                        Sale #{sale.sale_id ?? "—"}
+                                                    </button>
+                                                </span>
                                             </div>
                                         </td>
-                                        <td>{sale.full_name || sale.username || "Staff"}</td>
-                                        <td><span className="botanical-payment-chip">{String(sale.payment_method || "—").replace(/_/g, " ")}</span></td>
-                                        <td>{formatDate(sale.sale_date, true)}</td>
-                                        <td className="botanical-table-number botanical-sale-total">{formatCurrency(sale.total_amount)}</td>
+                                        <td>
+                                            {sale.full_name ||
+                                                sale.username ||
+                                                "Staff"}
+                                        </td>
+                                        <td>
+                                            <span className="botanical-payment-chip">
+                                                {String(
+                                                    sale.payment_method || "—"
+                                                ).replace(/_/g, " ")}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {formatDate(sale.sale_date, true)}
+                                        </td>
+                                        <td className="botanical-table-number botanical-sale-total">
+                                            {formatCurrency(sale.total_amount)}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -596,22 +888,31 @@ function Dashboard() {
                 <section className="botanical-panel botanical-recent-inventory-panel">
                     <div className="botanical-panel-heading botanical-panel-heading-with-action">
                         <div>
-                            <span className="botanical-panel-eyebrow">Stock overview</span>
+                            <span className="botanical-panel-eyebrow">
+                                Stock overview
+                            </span>
                             <h2>Recent inventory batches</h2>
-                            <p>Latest inventory records currently available.</p>
                         </div>
-                        <button type="button" className="botanical-outline-button" onClick={() => goTo("/inventory")}>
+                        <button
+                            type="button"
+                            className="botanical-outline-button"
+                            onClick={() => goTo("/inventory")}
+                        >
                             View inventory <ArrowRight size={15} />
                         </button>
                     </div>
 
                     {loading ? (
-                        <div className="botanical-panel-loading">Loading inventory…</div>
+                        <div className="botanical-panel-loading">
+                            Loading inventory…
+                        </div>
                     ) : inventory.length === 0 ? (
                         <div className="botanical-panel-empty">
                             <Boxes size={28} />
                             <strong>No inventory batches found</strong>
-                            <span>Add received stock from the Inventory page.</span>
+                            <span>
+                                Add received stock from the Inventory page.
+                            </span>
                         </div>
                     ) : (
                         <div className="botanical-table-wrap">
@@ -628,18 +929,42 @@ function Dashboard() {
                                 <tbody>
                                     {inventory.slice(0, 5).map((item) => {
                                         const status = getInventoryStatus(item);
+
                                         return (
                                             <tr key={item.inventory_id}>
                                                 <td>
                                                     <div className="botanical-product-cell">
-                                                        <span className="botanical-product-icon"><Package size={17} /></span>
-                                                        <span><strong>{item.product_name || "Unnamed product"}</strong><small>{item.barcode || "No barcode"}</small></span>
+                                                        <span>
+                                                            <strong>
+                                                                {item.product_name ||
+                                                                    "Unnamed product"}
+                                                            </strong>
+                                                        </span>
                                                     </div>
                                                 </td>
-                                                <td>{item.batch_number || "—"}</td>
-                                                <td><strong>{formatNumber(item.quantity)}</strong></td>
-                                                <td>{formatDate(item.expiry_date)}</td>
-                                                <td><span className={`botanical-status-chip status-${status}`}>{STATUS_LABELS[status]}</span></td>
+                                                <td>
+                                                    {item.batch_number || "—"}
+                                                </td>
+                                                <td>
+                                                    <strong>
+                                                        {formatNumber(
+                                                            item.quantity
+                                                        )}
+                                                    </strong>
+                                                </td>
+                                                <td>
+                                                    {formatDate(item.expiry_date)}
+                                                </td>
+                                                <td>
+                                                    <span
+                                                        className={`botanical-status-chip status-${status}`}
+                                                        style={
+                                                            STATUS_STYLES[status]
+                                                        }
+                                                    >
+                                                        {STATUS_LABELS[status]}
+                                                    </span>
+                                                </td>
                                             </tr>
                                         );
                                     })}
@@ -650,8 +975,15 @@ function Dashboard() {
                 </section>
             )}
 
+            <ReceiptModal
+                saleId={selectedReceiptId}
+                onClose={() => setSelectedReceiptId(null)}
+            />
+
             <footer className="botanical-dashboard-footer">
-                <span><Leaf size={14} /> Inventory Sales Management</span>
+                <span>
+                    <Leaf size={14} /> Inventory Sales Management
+                </span>
                 <span>Keep every item and transaction in view.</span>
             </footer>
         </main>

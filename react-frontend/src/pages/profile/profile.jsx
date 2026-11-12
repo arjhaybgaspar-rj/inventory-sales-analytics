@@ -222,9 +222,7 @@ function Profile() {
 
                     <h1>My Profile</h1>
 
-                    <p>
-                        Manage your personal information and account security.
-                    </p>
+
                 </div>
             </div>
 
