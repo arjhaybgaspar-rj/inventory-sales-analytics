@@ -1,3 +1,4 @@
+import 'screens/owner/owner_dashboard.dart';
 import 'screens/transaction_history_screen.dart';
 import 'package:flutter/material.dart';
 import 'screens/scanner_screen.dart';
@@ -74,12 +75,29 @@ class _LoginScreenState extends State<LoginScreen> {
     if (result['success'] == true) {
       final user = Map<String, dynamic>.from(result['user']);
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => CashierDashboard(user: user),
-        ),
-      );
+      final role = user['role']?.toString().toLowerCase();
+
+if (role == 'owner') {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (_) => OwnerDashboard(user: user),
+    ),
+  );
+} else if (role == 'cashier') {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(
+      builder: (_) => CashierDashboard(user: user),
+    ),
+  );
+} else {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('This account is not allowed to use the mobile app.'),
+    ),
+  );
+}
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -134,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Cashier Mobile Application',
+                      'Owner & Cashier Mobile Application',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey),
                     ),
@@ -202,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
                     const Text(
-                      'Authorized cashier accounts only.',
+                      'Authorized owner and cashier accounts only.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),

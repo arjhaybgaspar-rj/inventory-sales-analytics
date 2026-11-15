@@ -6,7 +6,9 @@ import 'http_client_factory.dart';
 import 'session_cookie_store.dart';
 
 class SalesService {
-  static const String baseUrl = 'http://192.168.100.50:5000';
+  static const String baseUrl = kIsWeb
+    ? 'http://localhost:5000'
+    : 'http://192.168.100.108:5000';
 
   late final http.Client _client = createHttpClient();
 

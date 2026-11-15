@@ -175,10 +175,10 @@ def mobile_login():
                 "message": error
             }), status_code
 
-        if user["role"] != "cashier":
+        if user["role"] not in ["cashier", "owner"]:
             return jsonify({
                 "success": False,
-                "message": "Only cashier accounts can access the mobile app."
+                "message": "Only owner and cashier accounts can access the mobile app."
             }), 403
 
         create_user_session(user)

@@ -92,7 +92,7 @@ def update_near_expiry_setting():
 
 
 @inventory_bp.route("", methods=["GET"])
-@login_required(["admin", "manager"])
+@login_required(["admin", "owner", "manager"])
 def get_inventory():
     connection = None
     cursor = None
