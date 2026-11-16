@@ -1,5 +1,6 @@
 
-from flask import Blueprint, request, jsonify
+
+from flask import Blueprint, request, jsonify, session
 from config.database import get_db_connection
 from utils.auth import login_required
 
@@ -91,12 +92,26 @@ def add_product():
             )
         )
 
+        product_id = cursor.lastrowid
+        cursor.execute(
+            """
+            INSERT INTO activity_logs (user_id, action, description)
+            VALUES (%s, %s, %s)
+            """,
+            (
+                session.get("user_id"),
+                "PRODUCT_CREATED",
+                f"Added product #{product_id}: {product_name} "
+                f"(barcode: {barcode}, price: ₱{selling_price:,.2f})."
+            )
+        )
+
         connection.commit()
 
         return jsonify({
             "success": True,
             "message": "Product added successfully.",
-            "product_id": cursor.lastrowid
+            "product_id": product_id
         }), 201
 
     except Exception as e:
@@ -139,6 +154,7 @@ def get_products():
                 selling_price,
                 image_url,
                 api_source,
+                near_expiry_days,
                 status,
                 created_at
             FROM products
@@ -235,7 +251,13 @@ def update_product(product_id):
         cursor = connection.cursor(dictionary=True)
 
         cursor.execute(
-            "SELECT product_id FROM products WHERE product_id = %s LIMIT 1",
+            """
+            SELECT product_id, product_name, brand, category, unit,
+                   selling_price, status
+            FROM products
+            WHERE product_id = %s
+            LIMIT 1
+            """,
             (product_id,)
         )
 
@@ -246,6 +268,18 @@ def update_product(product_id):
                 "success": False,
                 "message": "Product not found."
             }), 404
+
+        changes = []
+        for field, new_value in updates.items():
+            old_value = existing_product.get(field)
+            if old_value != new_value:
+                changes.append(f"{field}: '{old_value}' → '{new_value}'")
+
+        if not changes:
+            return jsonify({
+                "success": True,
+                "message": "No product information changed."
+            }), 200
 
         set_clause = ", ".join(
             f"{field} = %s"
@@ -262,6 +296,20 @@ def update_product(product_id):
         """
 
         cursor.execute(query, tuple(values))
+
+        cursor.execute(
+            """
+            INSERT INTO activity_logs (user_id, action, description)
+            VALUES (%s, %s, %s)
+            """,
+            (
+                session.get("user_id"),
+                "PRODUCT_UPDATED",
+                f"Updated product #{product_id} ({existing_product['product_name']}): "
+                f"{'; '.join(changes)}."
+            )
+        )
+
         connection.commit()
 
         return jsonify({

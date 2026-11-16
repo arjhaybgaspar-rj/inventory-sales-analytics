@@ -36,6 +36,7 @@ app.config.update(
     SESSION_COOKIE_SECURE=IS_PRODUCTION,
 )
 
+# CORS configuration
 origins_setting = os.getenv("FRONTEND_ORIGINS", "").strip()
 
 if origins_setting:
@@ -60,6 +61,7 @@ CORS(
     origins=cors_origins
 )
 
+# Register blueprints
 app.register_blueprint(barcode_bp)
 app.register_blueprint(product_bp)
 app.register_blueprint(auth_bp)

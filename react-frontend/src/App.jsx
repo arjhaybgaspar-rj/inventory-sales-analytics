@@ -1,8 +1,11 @@
+
 import { ArrowLeft, ShieldX } from "lucide-react";
+import { useEffect } from "react";
 
 import Users from "./pages/users/Users.jsx";
 import AuditLogs from "./pages/audit-logs/AuditLogs.jsx";
 import Dashboard from "./pages/dashboard/Dashboard.jsx";
+import StockMonitoring from "./pages/fefo/fefo.jsx";
 import Inventory from "./pages/inventory/Inventory.jsx";
 import Products from "./pages/products/Products.jsx";
 import Reports from "./pages/reports/Reports.jsx";
@@ -24,6 +27,14 @@ const ROUTES = {
     },
     "/inventory": {
         component: Inventory,
+        roles: ["manager"]
+    },
+    "/stock-monitoring": {
+        component: StockMonitoring,
+        roles: ["manager"]
+    },
+    "/fefo-recommendations": {
+        component: StockMonitoring,
         roles: ["manager"]
     },
     "/sales": {
@@ -101,21 +112,26 @@ function AccessDenied({ role }) {
 function App() {
     const currentPath = window.location.pathname;
     const user = getStoredUser();
+    const role = String(user?.role || "").toLowerCase();
+    const route = ROUTES[currentPath];
+
+    useEffect(() => {
+        if (currentPath !== "/" && !user) {
+            window.location.replace("/");
+        } else if (currentPath !== "/" && user && !route) {
+            window.location.replace(getDefaultPath(role));
+        }
+    }, [currentPath, role, route, user]);
 
     if (currentPath === "/") {
         return <Login />;
     }
 
     if (!user) {
-        window.location.href = "/";
         return null;
     }
 
-    const role = String(user.role || "").toLowerCase();
-    const route = ROUTES[currentPath];
-
     if (!route) {
-        window.location.href = getDefaultPath(role);
         return null;
     }
 

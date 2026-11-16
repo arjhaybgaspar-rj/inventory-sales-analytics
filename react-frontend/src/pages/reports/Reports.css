@@ -218,7 +218,7 @@
 
 .reports-panel-title {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 12px;
     margin-bottom: 20px;
 }
@@ -969,10 +969,10 @@
 
 .reports-risk-item {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    padding: 13px;
+    gap: 12px;
+    padding: 9px 12px;
     border: 1px solid #e4ece7;
     border-radius: 11px;
     background: #fbfdfb;
@@ -995,7 +995,7 @@
     display: flex;
     min-width: 0;
     flex-direction: column;
-    gap: 5px;
+    gap: 3px;
 }
 
 .reports-risk-item-main {
@@ -1065,20 +1065,10 @@
     }
 }
 
-/* Make stockout estimate data support easy to distinguish */
-.reports-risk-grid>.reports-panel:first-child .reports-risk-item-stats>span:nth-child(3) {
-    padding: 4px 7px;
-    border: 1px solid #d9e8df;
-    border-radius: 7px;
-    background: #f3f8f5;
-    color: #52675c;
-    font-size: 0.7rem;
-}
-
 /* Revenue trend comparison */
 .reports-revenue-trend-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
     margin-top: 14px;
 }
@@ -1188,9 +1178,13 @@
 /* Monthly forecast summary */
 .reports-monthly-forecast-metrics {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     margin-top: 18px;
+}
+
+.reports-monthly-forecast-metrics>div:nth-child(2) {
+    display: none;
 }
 
 .reports-monthly-forecast-metrics>div {
@@ -1216,9 +1210,6 @@
     font-size: 1rem;
 }
 
-.reports-monthly-support {
-    text-transform: capitalize;
-}
 
 .reports-monthly-forecast-note {
     margin: 13px 0 0;
@@ -1352,256 +1343,6 @@
 }
 
 
-/* Analytics sections relocated to the Dashboard. */
-.premium-reports-page:not(.reports-dashboard-embedded) .reports-moved-panel {
-    display: none !important;
-}
-
-.premium-reports-page.reports-dashboard-embedded {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 0;
-    background: transparent;
-    box-shadow: none;
-}
-
-.reports-dashboard-embedded>* {
-    display: none !important;
-}
-
-.reports-dashboard-embedded>.reports-main-grid.reports-risk-grid,
-.reports-dashboard-embedded>.reports-forecast-panel,
-.reports-dashboard-embedded>.reports-monthly-forecast-panel,
-.reports-dashboard-embedded>.reports-main-grid:not(.reports-risk-grid),
-.reports-dashboard-embedded>.reports-least-products-panel {
-    display: grid !important;
-}
-
-.reports-dashboard-embedded .reports-risk-grid>article:first-child,
-.reports-dashboard-embedded .reports-main-grid:not(.reports-risk-grid)>article:nth-child(2) {
-    display: none !important;
-}
-
-.reports-dashboard-embedded .reports-moved-panel {
-    display: block !important;
-}
-
-.reports-dashboard-embedded .reports-risk-grid,
-.reports-dashboard-embedded .reports-main-grid:not(.reports-risk-grid) {
-    grid-template-columns: minmax(0, 1fr);
-}
-
-@media (max-width: 760px) {
-    .premium-reports-page.reports-dashboard-embedded {
-        gap: 12px;
-    }
-}
-
-/* Dashboard analytics: compact paired panels and a shorter chart. */
-.premium-reports-page.reports-dashboard-embedded {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-    gap: 14px;
-}
-
-.reports-dashboard-embedded>.reports-main-grid.reports-risk-grid {
-    grid-column: 1;
-    grid-row: 1;
-}
-
-.reports-dashboard-embedded>.reports-forecast-panel {
-    grid-column: 2;
-    grid-row: 1;
-}
-
-.reports-dashboard-embedded>.reports-main-grid:not(.reports-risk-grid) {
-    grid-column: 1;
-    grid-row: 2;
-}
-
-.reports-dashboard-embedded>.reports-least-products-panel {
-    grid-column: 2;
-    grid-row: 2;
-}
-
-.reports-dashboard-embedded>.reports-monthly-forecast-panel {
-    grid-column: 1 / -1;
-    grid-row: 3;
-}
-
-.reports-dashboard-embedded .reports-moved-panel {
-    min-width: 0;
-    padding: 16px;
-}
-
-.reports-dashboard-embedded .reports-forecast-panel>div[style] {
-    overflow: hidden !important;
-}
-
-.reports-dashboard-embedded .reports-forecast-panel svg {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-height: 210px;
-}
-
-.reports-dashboard-embedded .reports-monthly-forecast-metrics {
-    margin-top: 12px;
-    gap: 9px;
-}
-
-.reports-dashboard-embedded .reports-monthly-forecast-metrics>div {
-    padding: 11px;
-}
-
-.reports-dashboard-embedded .reports-risk-list {
-    gap: 8px;
-}
-
-.reports-dashboard-embedded .reports-ranking-item {
-    padding-block: 8px;
-}
-
-@media (max-width: 900px) {
-    .premium-reports-page.reports-dashboard-embedded {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .reports-dashboard-embedded>.reports-main-grid.reports-risk-grid,
-    .reports-dashboard-embedded>.reports-forecast-panel,
-    .reports-dashboard-embedded>.reports-main-grid:not(.reports-risk-grid),
-    .reports-dashboard-embedded>.reports-least-products-panel,
-    .reports-dashboard-embedded>.reports-monthly-forecast-panel {
-        grid-column: 1;
-        grid-row: auto;
-    }
-}
-
-/* Prevent short declining-sales panels from stretching to chart height. */
-.reports-dashboard-embedded .reports-risk-empty {
-    flex: 0 0 auto;
-    min-height: 112px;
-    padding: 16px 12px;
-}
-
-.reports-dashboard-embedded .reports-risk-note {
-    margin-top: 10px;
-    padding-top: 8px;
-}
-
-.reports-dashboard-embedded .reports-risk-grid {
-    align-items: start;
-}
-
-.reports-dashboard-embedded .reports-risk-grid .reports-panel {
-    height: fit-content;
-}
-
-.reports-dashboard-embedded .reports-forecast-panel {
-    align-self: start;
-}
-
-/* Balanced dashboard arrangement: short panels share rows; chart gets its own. */
-.premium-reports-page.reports-dashboard-embedded {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-flow: row;
-    align-items: start;
-}
-
-.reports-dashboard-embedded>.reports-main-grid.reports-risk-grid {
-    grid-column: 1;
-    grid-row: 1;
-}
-
-.reports-dashboard-embedded>.reports-monthly-forecast-panel {
-    grid-column: 2;
-    grid-row: 1;
-}
-
-.reports-dashboard-embedded>.reports-forecast-panel {
-    grid-column: 1 / -1;
-    grid-row: 2;
-}
-
-.reports-dashboard-embedded>.reports-main-grid:not(.reports-risk-grid) {
-    grid-column: 1;
-    grid-row: 3;
-}
-
-.reports-dashboard-embedded>.reports-least-products-panel {
-    grid-column: 2;
-    grid-row: 3;
-}
-
-.reports-dashboard-embedded .reports-risk-empty {
-    flex: 0 0 auto;
-    min-height: 88px;
-    padding: 12px;
-}
-
-.reports-dashboard-embedded .reports-risk-note {
-    margin-top: 8px;
-    padding-top: 6px;
-}
-
-.reports-dashboard-embedded .reports-ranking-list {
-    gap: 12px;
-}
-
-.reports-dashboard-embedded .reports-ranking-item {
-    gap: 7px;
-}
-
-@media (max-width: 900px) {
-    .premium-reports-page.reports-dashboard-embedded {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .reports-dashboard-embedded>.reports-main-grid.reports-risk-grid,
-    .reports-dashboard-embedded>.reports-monthly-forecast-panel,
-    .reports-dashboard-embedded>.reports-forecast-panel,
-    .reports-dashboard-embedded>.reports-main-grid:not(.reports-risk-grid),
-    .reports-dashboard-embedded>.reports-least-products-panel {
-        grid-column: 1;
-        grid-row: auto;
-    }
-}
-
-/* Equalize the first pair of cards and enlarge the daily forecast chart. */
-.premium-reports-page.reports-dashboard-embedded {
-    align-items: stretch;
-}
-
-.reports-dashboard-embedded>.reports-main-grid.reports-risk-grid,
-.reports-dashboard-embedded>.reports-monthly-forecast-panel {
-    align-self: stretch;
-    height: 100%;
-}
-
-.reports-dashboard-embedded .reports-risk-grid {
-    align-items: stretch;
-    height: 100%;
-}
-
-.reports-dashboard-embedded .reports-risk-grid .reports-declining-sales-panel {
-    height: 100%;
-}
-
-.reports-dashboard-embedded .reports-forecast-panel svg {
-    max-height: 320px;
-}
-
-@media (max-width: 900px) {
-
-    .reports-dashboard-embedded>.reports-main-grid.reports-risk-grid,
-    .reports-dashboard-embedded>.reports-monthly-forecast-panel {
-        height: auto;
-    }
-}
-
 /* Reports page section layout: pair stock risk with payment mix. */
 .reports-stockout-payment-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1617,10 +1358,6 @@
 .reports-stockout-payment-grid>.reports-stockout-panel {
     max-height: 500px;
     overflow-y: auto;
-}
-
-.reports-dashboard-embedded .reports-stockout-payment-grid>.reports-payment-methods-panel {
-    display: none !important;
 }
 
 .reports-revenue-trend-grid {
@@ -1640,7 +1377,7 @@
     }
 
     .reports-revenue-trend-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
@@ -1692,4 +1429,245 @@
         max-height: none;
         overflow: visible;
     }
+}
+
+
+/* Compact, polished reporting-period filter. */
+.reports-date-filter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px 22px;
+    padding: 15px 19px 13px;
+    border: 1px solid #d8e6d9;
+    border-left: 3px solid #8eb69b;
+    border-radius: 14px;
+    background: linear-gradient(110deg, #f7fbf7 0%, #ffffff 68%);
+    box-shadow: 0 5px 18px rgba(11, 61, 46, 0.045);
+}
+
+.reports-date-filter-heading {
+    min-width: 0;
+    gap: 3px;
+}
+
+.reports-date-filter-heading strong {
+    color: #0b2b26;
+    font-size: 0.96rem;
+    letter-spacing: -0.01em;
+}
+
+.reports-date-filter-heading span {
+    color: #718478;
+    font-size: 0.78rem;
+}
+
+.reports-date-filter-controls {
+    grid-column: 2;
+    grid-row: 1;
+    align-items: center;
+    gap: 10px;
+}
+
+.reports-date-filter-controls .reports-date-period {
+    min-width: 190px;
+    gap: 5px;
+    color: #557363;
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.reports-date-filter-controls select,
+.reports-date-filter-controls input {
+    min-height: 40px;
+    border-color: #d2e2d4;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #173a2a;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.reports-date-filter-controls select:hover,
+.reports-date-filter-controls input:hover {
+    border-color: #9fbea5;
+}
+
+.reports-date-filter-controls select:focus,
+.reports-date-filter-controls input:focus {
+    border-color: #6b9071;
+    box-shadow: 0 0 0 3px rgba(107, 144, 113, 0.14);
+}
+
+.reports-date-filter-controls button {
+    min-height: 40px;
+    border-radius: 10px;
+    background: #235347;
+}
+
+.reports-date-filter-active {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding-top: 9px;
+    border-top: 1px solid #e5eee5;
+    color: #718478;
+    font-size: 0.74rem;
+    line-height: 1.4;
+}
+
+.reports-date-filter-active::before {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-radius: 50%;
+    background: #6b9071;
+    content: "";
+}
+
+@media (max-width: 680px) {
+    .reports-date-filter {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+        padding: 15px;
+    }
+
+    .reports-date-filter-controls {
+        grid-column: 1;
+        grid-row: auto;
+        width: 100%;
+    }
+
+    .reports-date-filter-controls .reports-date-period {
+        min-width: 100%;
+    }
+
+    .reports-date-filter-active {
+        grid-column: 1;
+    }
+}
+
+/* Payment mix: compact split layout with the total and methods in view. */
+.reports-payment-methods-panel {
+    display: grid;
+    grid-template-columns: minmax(130px, 0.75fr) minmax(0, 1.25fr);
+    grid-template-rows: auto 1fr;
+    align-content: center;
+    align-items: center;
+    gap: 18px 20px;
+}
+
+.reports-payment-methods-panel>.reports-panel-title {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    justify-content: flex-start;
+    width: 100%;
+    margin-bottom: 0;
+    text-align: left;
+}
+
+.reports-payment-methods-panel .reports-donut-area {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 0;
+    padding: 0;
+}
+
+.reports-payment-methods-panel .reports-donut {
+    width: 142px;
+    height: 142px;
+}
+
+.reports-payment-methods-panel .reports-donut-center {
+    width: 108px;
+    height: 108px;
+}
+
+.reports-payment-methods-panel .reports-donut-center strong {
+    max-width: 96px;
+    font-size: 0.9rem;
+}
+
+.reports-payment-methods-panel .reports-payment-list {
+    grid-column: 2;
+    grid-row: 2;
+    width: 100%;
+    gap: 8px;
+}
+
+.reports-payment-methods-panel .reports-payment-item {
+    gap: 10px;
+    padding: 0;
+    border: 0;
+}
+
+.reports-payment-methods-panel .reports-payment-icon {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+}
+
+.reports-payment-methods-panel .reports-payment-details {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid #e1ebe2;
+    border-radius: 11px;
+    background: #f8fbf8;
+    box-shadow: none;
+}
+
+.reports-payment-methods-panel .reports-payment-details>div {
+    min-width: 0;
+}
+
+.reports-payment-methods-panel .reports-payment-details strong {
+    font-size: 0.8rem;
+}
+
+.reports-payment-methods-panel .reports-payment-details span {
+    font-size: 0.72rem;
+}
+
+@media (max-width: 780px) {
+    .reports-payment-methods-panel {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto auto;
+        gap: 14px;
+    }
+
+    .reports-payment-methods-panel .reports-donut-area,
+    .reports-payment-methods-panel .reports-payment-list {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
+    .reports-payment-methods-panel .reports-payment-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .reports-payment-methods-panel .reports-payment-list {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.reports-kpi-card,
+.reports-secondary-grid article {
+    border-color: var(--reports-border);
+    border-left: 3px solid #8db79d;
+    border-radius: 17px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fbf9 100%);
+    box-shadow: 0 4px 13px rgb(11 61 46 / 4%);
+}
+
+.reports-kpi-card>strong,
+.reports-secondary-grid article strong {
+    text-align: left;
 }

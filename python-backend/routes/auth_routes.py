@@ -1,4 +1,5 @@
 
+
 from flask import Blueprint, request, jsonify, session
 from config.database import get_db_connection
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -175,10 +176,10 @@ def mobile_login():
                 "message": error
             }), status_code
 
-        if user["role"] not in ["cashier", "owner"]:
+        if user["role"] != "cashier":
             return jsonify({
                 "success": False,
-                "message": "Only owner and cashier accounts can access the mobile app."
+                "message": "Only cashier accounts can access the mobile app."
             }), 403
 
         create_user_session(user)
@@ -316,6 +317,28 @@ def update_profile():
                 full_name,
                 username,
                 user_id
+            ))
+
+        profile_changes = []
+        if user["full_name"] != full_name:
+            profile_changes.append(
+                f"full name changed from '{user['full_name']}' to '{full_name}'"
+            )
+        if user["username"] != username:
+            profile_changes.append(
+                f"username changed from '{user['username']}' to '{username}'"
+            )
+        if new_password:
+            profile_changes.append("password changed")
+
+        if profile_changes:
+            cursor.execute("""
+                INSERT INTO activity_logs (user_id, action, description)
+                VALUES (%s, %s, %s)
+            """, (
+                user_id,
+                "PROFILE_UPDATED",
+                f"Updated own account profile: {'; '.join(profile_changes)}."
             ))
 
         connection.commit()

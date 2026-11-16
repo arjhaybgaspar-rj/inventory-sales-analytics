@@ -1,3 +1,4 @@
+
 from flask import Blueprint, request, jsonify, session
 from config.database import get_db_connection
 from utils.auth import login_required
@@ -91,8 +92,79 @@ def update_near_expiry_setting():
             connection.close()
 
 
+@inventory_bp.route("/products/<int:product_id>/near-expiry-days", methods=["PUT"])
+@login_required(["admin", "manager"])
+def update_product_near_expiry_setting(product_id):
+    data = request.get_json(silent=True) or {}
+    raw_days = data.get("near_expiry_days")
+
+    if raw_days in (None, ""):
+        days = None
+    else:
+        if isinstance(raw_days, bool):
+            return jsonify({"success": False, "message": "Enter a whole number from 1 to 365, or leave it blank to use the default."}), 400
+        try:
+            days = int(raw_days)
+            if not 1 <= days <= 365:
+                raise ValueError
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "message": "Enter a whole number from 1 to 365, or leave it blank to use the default."}), 400
+
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT product_id, product_name, near_expiry_days FROM products WHERE product_id = %s LIMIT 1",
+            (product_id,)
+        )
+        product = cursor.fetchone()
+        if not product:
+            return jsonify({"success": False, "message": "Product not found."}), 404
+
+        previous_days = product.get("near_expiry_days")
+        fallback_days = get_near_expiry_days(cursor)
+        if previous_days != days:
+            cursor.execute(
+                "UPDATE products SET near_expiry_days = %s WHERE product_id = %s",
+                (days, product_id)
+            )
+            threshold_label = f"{days} days" if days is not None else f"the default ({fallback_days} days)"
+            previous_label = f"{previous_days} days" if previous_days is not None else f"the default ({fallback_days} days)"
+            cursor.execute(
+                """INSERT INTO activity_logs (user_id, action, description)
+                   VALUES (%s, %s, %s)""",
+                (
+                    session.get("user_id"),
+                    "UPDATE_PRODUCT_EXPIRY_THRESHOLD",
+                    f"Changed the near-expiry threshold for {product['product_name']} "
+                    f"from {previous_label} to {threshold_label}."
+                )
+            )
+            connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Product expiry threshold updated." if previous_days != days else "No threshold change was needed.",
+            "product_id": product_id,
+            "product_near_expiry_days": days,
+            "near_expiry_days": days if days is not None else fallback_days
+        }), 200
+    except Exception as e:
+        if connection:
+            connection.rollback()
+        print("Update product near-expiry setting error:", repr(e))
+        return jsonify({"success": False, "message": "Unable to save this product's expiry threshold."}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
 @inventory_bp.route("", methods=["GET"])
-@login_required(["admin", "owner", "manager"])
+@login_required(["admin", "manager"])
 def get_inventory():
     connection = None
     cursor = None
@@ -100,6 +172,7 @@ def get_inventory():
     try:
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
+        default_near_expiry_days = get_near_expiry_days(cursor)
 
         query = """
             SELECT
@@ -115,6 +188,8 @@ def get_inventory():
                 b.received_date,
                 b.acquisition_cost,
                 b.status AS batch_status,
+                p.near_expiry_days AS product_near_expiry_days,
+                COALESCE(p.near_expiry_days, %s) AS near_expiry_days,
                 p.product_id,
                 p.product_name,
                 p.barcode,
@@ -131,7 +206,7 @@ def get_inventory():
                 p.product_name ASC
         """
 
-        cursor.execute(query)
+        cursor.execute(query, (default_near_expiry_days,))
         inventory = cursor.fetchall()
 
         return jsonify({
@@ -259,6 +334,8 @@ def get_inventory_alerts():
                 p.product_name,
                 p.barcode,
                 p.brand,
+                p.near_expiry_days AS product_near_expiry_days,
+                COALESCE(p.near_expiry_days, %s) AS near_expiry_days,
                 CASE
                     WHEN b.expiry_date < CURDATE()
                         THEN 'Expired'
@@ -271,10 +348,8 @@ def get_inventory_alerts():
                 ON b.product_id = p.product_id
             WHERE p.status = 'active'
                 AND b.expiry_date IS NOT NULL
-                AND b.expiry_date <= DATE_ADD(
-                    CURDATE(),
-                    INTERVAL %s DAY
-                )
+                AND DATEDIFF(b.expiry_date, CURDATE()) <=
+                    COALESCE(p.near_expiry_days, %s)
                 AND GREATEST(
                     LEAST(
                         COALESCE(i.quantity, 0),
@@ -288,7 +363,7 @@ def get_inventory_alerts():
                 b.batch_number ASC
         """
 
-        cursor.execute(expiry_query, (near_expiry_days,))
+        cursor.execute(expiry_query, (near_expiry_days, near_expiry_days))
         expiry_alerts = cursor.fetchall()
 
         for alert in expiry_alerts:
@@ -396,7 +471,7 @@ def stock_in():
 
         cursor.execute(
             """
-            SELECT product_id
+            SELECT product_id, product_name
             FROM products
             WHERE product_id = %s
               AND status = 'active'
@@ -486,6 +561,22 @@ def stock_in():
                 inventory_id,
                 "Stock-in transaction",
                 created_by
+            )
+        )
+
+        cursor.execute(
+            """
+            INSERT INTO activity_logs (user_id, action, description)
+            VALUES (%s, %s, %s)
+            """,
+            (
+                created_by,
+                "STOCK_RECEIVED",
+                f"Received {int(quantity)} units of {product['product_name']} "
+                f"in batch {effective_batch_number}; unit cost "
+                f"₱{float(acquisition_cost):,.2f}; expiry "
+                f"{expiry_date or 'not set'}; received {received_date}; "
+                f"supplier reference {supplier_invoice_number or 'not provided'}."
             )
         )
 
@@ -666,6 +757,23 @@ def adjust_inventory():
             )
         )
 
+        cursor.execute(
+            """
+            INSERT INTO activity_logs (user_id, action, description)
+            VALUES (%s, %s, %s)
+            """,
+            (
+                user_id,
+                "INVENTORY_ADJUSTED",
+                f"Adjusted {record['product_name']} batch "
+                f"{record['batch_number']}: inventory count "
+                f"{previous_inventory_quantity} → {counted_quantity}; "
+                f"batch count {previous_batch_quantity} → {counted_quantity}; "
+                f"reason: {reason}"
+                + (f"; notes: {notes}" if notes else ".")
+            )
+        )
+
         connection.commit()
         return jsonify({
             "success": True,
@@ -815,10 +923,20 @@ def record_inventory_loss():
             """
             UPDATE batches
             SET quantity = %s,
-                status = CASE WHEN %s = 'expired' THEN 'expired' ELSE status END
+                status = CASE
+                    WHEN %s = 'expired' AND %s = 0 THEN 'disposed'
+                    WHEN %s = 'expired' THEN 'expired'
+                    ELSE status
+                END
             WHERE batch_id = %s
             """,
-            (remaining_quantity, reason, batch_id)
+            (
+                remaining_quantity,
+                reason,
+                remaining_quantity,
+                reason,
+                batch_id
+            )
         )
 
         cursor.execute(
@@ -853,6 +971,21 @@ def record_inventory_loss():
             VALUES (%s, 'LOSS', %s, %s, %s, %s)
             """,
             (batch_id, quantity, loss_id, movement_notes, user_id)
+        )
+
+        cursor.execute(
+            """
+            INSERT INTO activity_logs (user_id, action, description)
+            VALUES (%s, %s, %s)
+            """,
+            (
+                user_id,
+                "INVENTORY_LOSS_RECORDED",
+                f"Recorded {quantity} units lost for {record['product_name']} "
+                f"from batch {record['batch_number']}; reason: {reason}; "
+                f"remaining quantity: {remaining_quantity}"
+                + (f"; notes: {notes}" if notes else ".")
+            )
         )
 
         connection.commit()

@@ -29,28 +29,32 @@ function ReceiptModal({ saleId, onClose }) {
 
     useEffect(() => {
         if (!saleId) {
-            setReceipt(null);
-            setError("");
             return undefined;
         }
 
         const controller = new AbortController();
-        setLoading(true);
-        setError("");
-        setReceipt(null);
-
-        fetch(`${API_URL}/sales/${saleId}`, {
-            credentials: "include",
-            signal: controller.signal
-        })
+        Promise.resolve()
+            .then(() => {
+                if (controller.signal.aborted) return null;
+                setLoading(true);
+                setError("");
+                setReceipt(null);
+                return fetch(`${API_URL}/sales/${saleId}`, {
+                    credentials: "include",
+                    signal: controller.signal
+                });
+            })
             .then(async (response) => {
+                if (!response) return null;
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok || data.success !== true || !data.receipt) {
                     throw new Error(data.message || "Unable to load this receipt.");
                 }
                 return data.receipt;
             })
-            .then(setReceipt)
+            .then((data) => {
+                if (data && !controller.signal.aborted) setReceipt(data);
+            })
             .catch((requestError) => {
                 if (requestError.name !== "AbortError") {
                     setError(requestError.message || "Unable to load this receipt.");

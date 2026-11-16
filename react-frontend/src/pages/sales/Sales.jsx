@@ -10,17 +10,16 @@ import {
     Package,
     Plus,
     ReceiptText,
-    RefreshCw,
     Search,
     ShoppingBag,
     ShoppingCart,
     Smartphone,
-    Sparkles,
     Trash2,
     X
 } from "lucide-react";
 
 import {
+    useCallback,
     useEffect,
     useMemo,
     useRef,
@@ -96,15 +95,13 @@ function Sales() {
     const scanHandledRef = useRef(false);
 
 
-    const showMessage = (text, type = "success") => {
+    const showMessage = useCallback((text, type = "success") => {
         setMessage(text);
         setMessageType(type);
-    };
+    }, []);
 
 
-    const loadProducts = async () => {
-        setProductsLoading(true);
-
+    const loadProducts = useCallback(async () => {
         try {
             const response = await fetch(
                 `${API_URL}/products`,
@@ -137,12 +134,10 @@ function Sales() {
         } finally {
             setProductsLoading(false);
         }
-    };
+    }, [showMessage]);
 
 
-    const loadSales = async () => {
-        setSalesLoading(true);
-
+    const loadSales = useCallback(async () => {
         try {
             const response = await fetch(
                 `${API_URL}/sales`,
@@ -175,20 +170,20 @@ function Sales() {
         } finally {
             setSalesLoading(false);
         }
-    };
+    }, [showMessage]);
 
 
-    const refreshAll = async () => {
+    const refreshAll = useCallback(async () => {
         await Promise.all([
             loadProducts(),
             loadSales()
         ]);
-    };
+    }, [loadProducts, loadSales]);
 
 
     useEffect(() => {
-        refreshAll();
-    }, []);
+        Promise.resolve().then(() => refreshAll());
+    }, [refreshAll]);
 
 
     const stopSalesScanner = () => {
@@ -236,103 +231,6 @@ function Sales() {
         scanHandledRef.current = false;
         setScannerOpen(true);
     };
-
-
-    useEffect(() => {
-        if (!scannerOpen || !videoRef.current) {
-            return;
-        }
-
-        let cancelled = false;
-
-        const reader = new BrowserMultiFormatReader();
-
-        const startCamera = async () => {
-            setScannerLoading(true);
-
-            try {
-                const controls = await reader.decodeFromVideoDevice(
-                    undefined,
-                    videoRef.current,
-                    (result, error) => {
-                        if (
-                            !result ||
-                            scanHandledRef.current ||
-                            cancelled
-                        ) {
-                            return;
-                        }
-
-                        scanHandledRef.current = true;
-
-                        const scannedBarcode = String(
-                            result.getText() || ""
-                        ).trim();
-
-                        stopRequestedRef.current = true;
-
-                        if (scannerControlsRef.current) {
-                            scannerControlsRef.current.stop();
-                            scannerControlsRef.current = null;
-                        }
-
-                        setScannerOpen(false);
-                        setScannerLoading(false);
-
-                        const matchedProduct = products.find(
-                            (product) =>
-                                String(product.barcode || "").trim() ===
-                                scannedBarcode
-                        );
-
-                        if (!matchedProduct) {
-                            showMessage(
-                                `Barcode ${scannedBarcode} is not registered in your product list.`,
-                                "error"
-                            );
-
-                            return;
-                        }
-
-                        void addToCart(matchedProduct);
-                    }
-                );
-
-                if (cancelled || stopRequestedRef.current) {
-                    controls.stop();
-                    return;
-                }
-
-                scannerControlsRef.current = controls;
-                setScannerLoading(false);
-            } catch (error) {
-                if (!cancelled) {
-                    console.error("Sales scanner error:", error);
-
-                    setScannerOpen(false);
-                    setScannerLoading(false);
-
-                    showMessage(
-                        "Unable to start the camera. Check camera permission and try again.",
-                        "error"
-                    );
-                }
-            }
-        };
-
-        startCamera();
-
-        return () => {
-            cancelled = true;
-
-            stopRequestedRef.current = true;
-
-            if (scannerControlsRef.current) {
-                scannerControlsRef.current.stop();
-                scannerControlsRef.current = null;
-            }
-        };
-    }, [scannerOpen]);
 
 
     useEffect(() => {
@@ -460,7 +358,7 @@ function Sales() {
     }, [sales]);
 
 
-    const loadEligibleBatches = async (productId) => {
+    const loadEligibleBatches = useCallback(async (productId) => {
         setBatchLoadingIds((current) =>
             current.includes(productId)
                 ? current
@@ -489,10 +387,10 @@ function Sales() {
                 current.filter((id) => id !== productId)
             );
         }
-    };
+    }, []);
 
 
-    const addToCart = async (product) => {
+    const addToCart = useCallback(async (product) => {
         setMessage("");
 
         const existingItem = cart.find(
@@ -535,8 +433,8 @@ function Sales() {
             const result = await loadEligibleBatches(product.product_id);
             eligibleBatches = result.batches;
             selectedBatchId = result.recommendedBatchId;
-        } catch (error) {
-            console.error("Eligible batches error:", error);
+        } catch (loadError) {
+            console.error("Eligible batches error:", loadError);
             batchLoadFailed = true;
         }
 
@@ -586,7 +484,105 @@ function Sales() {
                 : `${product.product_name} added to the cart.`,
             batchLoadFailed ? "error" : "success"
         );
-    };
+    }, [cart, loadEligibleBatches, showMessage]);
+
+
+    useEffect(() => {
+        if (!scannerOpen || !videoRef.current) {
+            return;
+        }
+
+        let cancelled = false;
+
+        const reader = new BrowserMultiFormatReader();
+
+        const startCamera = async () => {
+            setScannerLoading(true);
+
+            try {
+                const controls = await reader.decodeFromVideoDevice(
+                    undefined,
+                    videoRef.current,
+                    (result) => {
+                        if (
+                            !result ||
+                            scanHandledRef.current ||
+                            cancelled
+                        ) {
+                            return;
+                        }
+
+                        scanHandledRef.current = true;
+
+                        const scannedBarcode = String(
+                            result.getText() || ""
+                        ).trim();
+
+                        stopRequestedRef.current = true;
+
+                        if (scannerControlsRef.current) {
+                            scannerControlsRef.current.stop();
+                            scannerControlsRef.current = null;
+                        }
+
+                        setScannerOpen(false);
+                        setScannerLoading(false);
+
+                        const matchedProduct = products.find(
+                            (product) =>
+                                String(product.barcode || "").trim() ===
+                                scannedBarcode
+                        );
+
+                        if (!matchedProduct) {
+                            showMessage(
+                                `Barcode ${scannedBarcode} is not registered in your product list.`,
+                                "error"
+                            );
+
+                            return;
+                        }
+
+                        void addToCart(matchedProduct);
+                    }
+                );
+
+                if (cancelled || stopRequestedRef.current) {
+                    controls.stop();
+                    return;
+                }
+
+                scannerControlsRef.current = controls;
+                setScannerLoading(false);
+            } catch (error) {
+                if (!cancelled) {
+                    console.error("Sales scanner error:", error);
+
+                    setScannerOpen(false);
+                    setScannerLoading(false);
+
+                    showMessage(
+                        "Unable to start the camera. Check camera permission and try again.",
+                        "error"
+                    );
+                }
+            }
+        };
+
+        startCamera();
+
+        return () => {
+            cancelled = true;
+
+            stopRequestedRef.current = true;
+
+            if (scannerControlsRef.current) {
+                scannerControlsRef.current.stop();
+                scannerControlsRef.current = null;
+            }
+        };
+    }, [addToCart, products, scannerOpen, showMessage]);
+
 
 
     const increaseQuantity = (productId) => {
@@ -984,28 +980,6 @@ function Sales() {
 
 
                 </div>
-
-                <button
-                    type="button"
-                    className="sales-header-refresh"
-                    onClick={refreshAll}
-                    disabled={
-                        productsLoading ||
-                        salesLoading ||
-                        processing
-                    }
-                >
-                    <RefreshCw
-                        size={17}
-                        strokeWidth={2}
-                        className={
-                            productsLoading || salesLoading
-                                ? "sales-spin"
-                                : ""
-                        }
-                    />
-                    Refresh
-                </button>
             </header>
 
 
@@ -1093,29 +1067,8 @@ function Sales() {
 
                             <h2>Select Products</h2>
 
-                            <p>
-                                Search the catalog and add products
-                                to the current order.
-                            </p>
-                        </div>
 
-                        <button
-                            type="button"
-                            className="sales-panel-refresh"
-                            onClick={loadProducts}
-                            disabled={productsLoading || processing}
-                        >
-                            <RefreshCw
-                                size={16}
-                                strokeWidth={2}
-                                className={
-                                    productsLoading
-                                        ? "sales-spin"
-                                        : ""
-                                }
-                            />
-                            Refresh
-                        </button>
+                        </div>
                     </div>
 
 
@@ -1316,10 +1269,6 @@ function Sales() {
                 <aside className="sales-order-panel">
                     <div className="sales-order-heading">
                         <div>
-                            <span className="sales-panel-eyebrow">
-                                Current Order
-                            </span>
-
                             <h2>Cart</h2>
 
                             <p>
@@ -1353,11 +1302,6 @@ function Sales() {
                                 </div>
 
                                 <strong>Your cart is empty</strong>
-
-                                <span>
-                                    Select products from the catalog
-                                    to begin an order.
-                                </span>
                             </div>
                         ) : (
                             <div className="sales-cart-list">
@@ -1584,9 +1528,6 @@ function Sales() {
                         <div className="sales-payment-heading">
                             <span>Payment Method</span>
 
-                            <small>
-                                Choose how the customer will pay
-                            </small>
                         </div>
 
                         <div className="sales-payment-options">
@@ -1693,10 +1634,6 @@ function Sales() {
 
                             <h2>Sales History</h2>
 
-                            <p>
-                                Review completed transactions recorded
-                                in the system.
-                            </p>
                         </div>
                     </div>
 
@@ -1727,24 +1664,6 @@ function Sales() {
                                 </button>
                             )}
                         </div>
-
-                        <button
-                            type="button"
-                            className="sales-panel-refresh"
-                            onClick={loadSales}
-                            disabled={salesLoading || processing}
-                        >
-                            <RefreshCw
-                                size={16}
-                                strokeWidth={2}
-                                className={
-                                    salesLoading
-                                        ? "sales-spin"
-                                        : ""
-                                }
-                            />
-                            Refresh
-                        </button>
                     </div>
                 </div>
 

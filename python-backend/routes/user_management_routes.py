@@ -1,4 +1,5 @@
 
+
 from flask import Blueprint, request, jsonify, session
 from config.database import get_db_connection
 from utils.auth import login_required
@@ -122,7 +123,8 @@ def add_user():
         """, (
             session["user_id"],
             "USER_CREATED",
-            f"Created user account: {username} ({role})"
+            f"Created user account #{new_user_id}: {full_name} "
+            f"(@{username}, role: {role}, status: active)."
         ))
 
         connection.commit()
@@ -188,7 +190,7 @@ def update_user(user_id):
         cursor = connection.cursor(dictionary=True)
 
         cursor.execute("""
-            SELECT user_id, username, role
+            SELECT user_id, username, full_name, role
             FROM users
             WHERE user_id = %s
             LIMIT 1
@@ -227,14 +229,30 @@ def update_user(user_id):
             WHERE user_id = %s
         """, (username, full_name, role, user_id))
 
-        cursor.execute("""
-            INSERT INTO activity_logs (user_id, action, description)
-            VALUES (%s, %s, %s)
-        """, (
-            session["user_id"],
-            "USER_UPDATED",
-            f"Updated user account: {username}"
-        ))
+        changes = []
+        if existing_user["username"] != username:
+            changes.append(
+                f"username '{existing_user['username']}' → '{username}'"
+            )
+        if existing_user["full_name"] != full_name:
+            changes.append(
+                f"full name '{existing_user['full_name']}' → '{full_name}'"
+            )
+        if existing_user["role"] != role:
+            changes.append(
+                f"role '{existing_user['role']}' → '{role}'"
+            )
+
+        if changes:
+            cursor.execute("""
+                INSERT INTO activity_logs (user_id, action, description)
+                VALUES (%s, %s, %s)
+            """, (
+                session["user_id"],
+                "USER_UPDATED",
+                f"Updated account #{user_id} ({username}): "
+                f"{'; '.join(changes)}."
+            ))
 
         connection.commit()
 
@@ -278,7 +296,7 @@ def deactivate_user(user_id):
         cursor = connection.cursor(dictionary=True)
 
         cursor.execute("""
-            SELECT user_id, username, status
+            SELECT user_id, username, full_name, role, status
             FROM users
             WHERE user_id = %s
             LIMIT 1
@@ -310,7 +328,8 @@ def deactivate_user(user_id):
         """, (
             session["user_id"],
             "USER_DEACTIVATED",
-            f"Deactivated user account: {user['username']}"
+            f"Deactivated account #{user_id}: {user['full_name']} "
+            f"(@{user['username']}, role: {user['role']})."
         ))
 
         connection.commit()
@@ -329,6 +348,77 @@ def deactivate_user(user_id):
         return jsonify({
             "success": False,
             "message": "Unable to deactivate user."
+        }), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+@user_management_bp.route("/<int:user_id>/reactivate", methods=["PUT"])
+@login_required(["admin"])
+def reactivate_user(user_id):
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT user_id, username, full_name, role, status
+            FROM users
+            WHERE user_id = %s
+            LIMIT 1
+        """, (user_id,))
+
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({
+                "success": False,
+                "message": "User not found."
+            }), 404
+
+        if user["status"] == "active":
+            return jsonify({
+                "success": False,
+                "message": "User is already active."
+            }), 400
+
+        cursor.execute("""
+            UPDATE users
+            SET status = 'active'
+            WHERE user_id = %s
+        """, (user_id,))
+
+        cursor.execute("""
+            INSERT INTO activity_logs (user_id, action, description)
+            VALUES (%s, %s, %s)
+        """, (
+            session["user_id"],
+            "USER_REACTIVATED",
+            f"Reactivated account #{user_id}: {user['full_name']} "
+            f"(@{user['username']}, role: {user['role']})."
+        ))
+
+        connection.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "User reactivated successfully."
+        }), 200
+
+    except Exception as e:
+        if connection:
+            connection.rollback()
+
+        print("Reactivate user error:", e)
+
+        return jsonify({
+            "success": False,
+            "message": "Unable to reactivate user."
         }), 500
 
     finally:

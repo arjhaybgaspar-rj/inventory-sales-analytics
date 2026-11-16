@@ -1161,43 +1161,6 @@
     border-radius: 11px;
 }
 
-.sales-history-pagination {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 14px;
-    color: var(--sales-muted);
-    font-size: 0.8rem;
-}
-
-.sales-history-pagination > div {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.sales-history-pagination button {
-    min-height: 34px;
-    padding: 0 11px;
-    border: 1px solid var(--sales-border, #d9e8df);
-    border-radius: 8px;
-    background: #fff;
-    color: var(--sales-green);
-    font: inherit;
-    font-weight: 650;
-    cursor: pointer;
-}
-
-.sales-history-pagination button:hover:not(:disabled) {
-    background: var(--sales-mint);
-}
-
-.sales-history-pagination button:disabled {
-    color: #9aa79f;
-    cursor: not-allowed;
-}
-
 .sales-modern-table {
     width: 100%;
     min-width: 680px;
@@ -1540,16 +1503,6 @@
 @media (max-width: 600px) {
     .modern-sales-page {
         gap: 17px;
-    }
-
-    .sales-history-pagination {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .sales-history-pagination > div {
-        width: 100%;
-        justify-content: space-between;
     }
 
     .sales-modern-header,
@@ -1923,4 +1876,120 @@
     .sales-product-list-add {
         padding: 0 8px;
     }
+}
+
+/* Sales History summary: keep labels and values clearly separated. */
+.sales-history-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(170px, 230px));
+    gap: 10px;
+    margin: 14px 0;
+}
+
+.sales-history-summary>div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 5px;
+    padding: 12px 14px;
+    border: 1px solid var(--sales-border, #d9e8df);
+    border-radius: 11px;
+    background: #f7faf8;
+}
+
+.sales-history-summary span {
+    display: block;
+    color: var(--sales-muted, #718078);
+    font-size: 0.78rem;
+}
+
+.sales-history-summary strong {
+    display: block;
+    color: var(--sales-forest, #0b3d2e);
+    font-size: 1.05rem;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 560px) {
+    .sales-history-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Sales History pagination */
+.sales-history-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 14px;
+    padding: 11px 14px;
+    border: 1px solid var(--sales-border, #d9e8df);
+    border-radius: 11px;
+    background: #f8fbf9;
+    color: var(--sales-muted, #718078);
+    font-size: 0.82rem;
+}
+
+.sales-history-pagination>div {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--sales-forest, #0b3d2e);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.sales-history-pagination button {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 11px;
+    border: 1px solid var(--sales-border, #d9e8df);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--sales-green, #145c46);
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.sales-history-pagination button:hover:not(:disabled) {
+    border-color: #a7d6c0;
+    background: #eaf6f0;
+}
+
+.sales-history-pagination button:disabled {
+    color: #9aa9a1;
+    background: #f1f5f2;
+    cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+    .sales-history-pagination {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .sales-history-pagination>div {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+/* Sage dashboard box styling; preserve the sales metrics' original layout. */
+.sales-summary-card {
+    border-color: var(--sales-border);
+    border-left: 3px solid #8db79d;
+    border-radius: 17px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fbf9 100%);
+    box-shadow: 0 4px 13px rgb(11 61 46 / 4%);
+}
+
+.sales-summary-card strong,
+.sales-summary-card .sales-summary-money {
+    text-align: left;
 }

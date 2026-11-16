@@ -4,6 +4,9 @@ import {
     Barcode,
     Camera,
     CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
+    Database,
     Edit2,
     Info,
     Package,
@@ -12,11 +15,11 @@ import {
     ScanLine,
     Search,
     SearchX,
-    Sparkles,
     X
 } from "lucide-react";
 
 import {
+    useCallback,
     useEffect,
     useMemo,
     useRef,
@@ -108,7 +111,9 @@ function Products() {
 
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
 
     const [editingProduct, setEditingProduct] = useState(null);
     const [editForm, setEditForm] = useState({
@@ -128,9 +133,7 @@ function Products() {
         }).format(Number(value || 0));
     };
 
-    const loadProducts = async () => {
-        setCatalogLoading(true);
-
+    const loadProducts = useCallback(async () => {
         try {
             const response = await fetch(`${API_URL}/products`, {
                 credentials: "include"
@@ -150,9 +153,9 @@ function Products() {
         } finally {
             setCatalogLoading(false);
         }
-    };
+    }, []);
 
-    const stopCamera = () => {
+    const stopCamera = useCallback(() => {
         scanningRef.current = false;
         setScanning(false);
 
@@ -177,7 +180,7 @@ function Products() {
         if (videoRef.current) {
             videoRef.current.srcObject = null;
         }
-    };
+    }, []);
 
     const clearLookup = () => {
         stopCamera();
@@ -537,7 +540,7 @@ function Products() {
             }
 
             setEditingProduct(null);
-            setMessage("Product updated successfully.");
+            setSuccessMessage("Product updated successfully.");
             await loadProducts();
         } catch (err) {
             console.error("Update product error:", err);
@@ -571,8 +574,30 @@ function Products() {
         });
     }, [products, searchTerm]);
 
+    const productsPerPage = 10;
+    const totalPages = Math.max(1, Math.ceil(filteredProducts.length / productsPerPage));
+    const visiblePage = Math.min(currentPage, totalPages);
+    const pageProducts = filteredProducts.slice(
+        (visiblePage - 1) * productsPerPage,
+        visiblePage * productsPerPage
+    );
+    const firstVisibleProduct = filteredProducts.length
+        ? (visiblePage - 1) * productsPerPage + 1
+        : 0;
+    const lastVisibleProduct = Math.min(
+        visiblePage * productsPerPage,
+        filteredProducts.length
+    );
+
     const activeProducts = useMemo(
         () => products.filter((item) => item.status === "active").length,
+        [products]
+    );
+
+    const apiProducts = useMemo(
+        () => products.filter((item) =>
+            String(item.api_source || "").toLowerCase().includes("open food facts")
+        ).length,
         [products]
     );
 
@@ -588,12 +613,12 @@ function Products() {
     }, [products]);
 
     useEffect(() => {
-        loadProducts();
+        Promise.resolve().then(() => loadProducts());
 
         return () => {
             stopCamera();
         };
-    }, []);
+    }, [loadProducts, stopCamera]);
 
     const openProductDetails = (item) => {
         setSelectedProduct(item);
@@ -611,20 +636,6 @@ function Products() {
                     <h1>Products</h1>
 
                 </div>
-
-                <button
-                    type="button"
-                    className="products-header-refresh"
-                    onClick={loadProducts}
-                    disabled={catalogLoading || loading}
-                >
-                    <RefreshCw
-                        size={17}
-                        strokeWidth={2}
-                        className={catalogLoading ? "products-spin" : ""}
-                    />
-                    Refresh Catalog
-                </button>
             </header>
 
             <section className="products-summary-grid">
@@ -645,6 +656,16 @@ function Products() {
                     <div>
                         <span>Active Products</span>
                         <strong>{activeProducts}</strong>
+                    </div>
+                </article>
+
+                <article className="products-summary-card">
+                    <div className="products-summary-icon products-summary-purple">
+                        <Database size={21} strokeWidth={1.9} />
+                    </div>
+                    <div>
+                        <span>API Identified</span>
+                        <strong>{apiProducts}</strong>
                     </div>
                 </article>
 
@@ -686,6 +707,43 @@ function Products() {
                     >
                         <X size={16} strokeWidth={2} />
                     </button>
+                </div>
+            )}
+
+            {successMessage && (
+                <div
+                    className="products-success-backdrop"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) setSuccessMessage("");
+                    }}
+                >
+                    <section
+                        className="products-success-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="products-success-title"
+                    >
+                        <button
+                            type="button"
+                            className="products-success-close"
+                            onClick={() => setSuccessMessage("")}
+                            aria-label="Close success message"
+                        >
+                            <X size={19} />
+                        </button>
+                        <div className="products-success-icon">
+                            <CheckCircle2 size={27} strokeWidth={1.9} />
+                        </div>
+                        <h2 id="products-success-title">Changes saved</h2>
+                        <p>{successMessage}</p>
+                        <button
+                            type="button"
+                            className="products-success-done"
+                            onClick={() => setSuccessMessage("")}
+                        >
+                            Done
+                        </button>
+                    </section>
                 </div>
             )}
 
@@ -1116,10 +1174,6 @@ function Products() {
 
                         <h2>Product Catalog</h2>
 
-                        <p>
-                            Browse all active products currently registered
-                            in the system.
-                        </p>
                     </div>
 
                     <div className="products-catalog-search">
@@ -1128,14 +1182,20 @@ function Products() {
                         <input
                             type="text"
                             value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
+                            onChange={(event) => {
+                                setSearchTerm(event.target.value);
+                                setCurrentPage(1);
+                            }}
                             placeholder="Search products..."
                         />
 
                         {searchTerm && (
                             <button
                                 type="button"
-                                onClick={() => setSearchTerm("")}
+                                onClick={() => {
+                                    setSearchTerm("");
+                                    setCurrentPage(1);
+                                }}
                                 aria-label="Clear search"
                             >
                                 <X size={15} strokeWidth={2} />
@@ -1166,126 +1226,154 @@ function Products() {
                         </span>
                     </div>
                 ) : (
-                    <div className="products-table-wrapper">
-                        <table className="products-modern-table">
-                            <thead>
-                                <tr>
-                                    <th>Product</th>
-                                    <th>Barcode</th>
-                                    <th>Brand</th>
-                                    <th>Category</th>
-                                    <th>Unit</th>
-                                    <th>Price</th>
-                                    <th>Source</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {filteredProducts.map((item) => (
-                                    <tr key={item.product_id}>
-                                        <td>
-                                            <div className="products-table-product">
-                                                <div className="products-table-image">
-                                                    {item.image_url ? (
-                                                        <img
-                                                            src={item.image_url}
-                                                            alt={item.product_name}
-                                                        />
-                                                    ) : (
-                                                        <Package
-                                                            size={22}
-                                                            strokeWidth={1.5}
-                                                        />
-                                                    )}
-                                                </div>
-
-                                                <div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openProductDetails(item)}
-                                                        aria-label={`View details for ${item.product_name}`}
-                                                        style={{
-                                                            display: "block",
-                                                            padding: 0,
-                                                            color: "inherit",
-                                                            background: "transparent",
-                                                            border: 0,
-                                                            font: "inherit",
-                                                            fontWeight: 700,
-                                                            textAlign: "left",
-                                                            cursor: "pointer"
-                                                        }}
-                                                    >
-                                                        {item.product_name}
-                                                    </button>
-                                                    <span>Product #{item.product_id}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        <td>
-                                            <span className="products-table-barcode">
-                                                {item.barcode}
-                                            </span>
-                                        </td>
-
-                                        <td title={item.brand || ""}>
-                                            {formatProductBrand(item.brand)}
-                                        </td>
-
-                                        <td>
-                                            <span
-                                                className="products-category-cell"
-                                                title={item.category || ""}
-                                            >
-                                                {formatProductCategory(item.category)}
-                                            </span>
-                                        </td>
-
-                                        <td>{item.unit || "N/A"}</td>
-
-                                        <td>
-                                            <strong className="products-table-price">
-                                                {formatCurrency(item.selling_price)}
-                                            </strong>
-                                        </td>
-
-                                        <td>
-                                            <span className="products-source-cell">
-                                                {item.api_source || "Database"}
-                                            </span>
-                                        </td>
-
-                                        <td>
-                                            <span
-                                                className={
-                                                    item.status === "active"
-                                                        ? "products-status products-status-active"
-                                                        : "products-status products-status-inactive"
-                                                }
-                                            >
-                                                {item.status || "active"}
-                                            </span>
-                                        </td>
-
-                                        <td>
-                                            <button
-                                                type="button"
-                                                className="products-edit-button"
-                                                onClick={() => openEditModal(item)}
-                                                disabled={savingEdit}
-                                            >
-                                                <Edit2 size={15} />
-                                                Edit
-                                            </button>
-                                        </td>
+                    <>
+                        <div className="products-table-wrapper">
+                            <table className="products-modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Barcode</th>
+                                        <th>Brand</th>
+                                        <th>Category</th>
+                                        <th>Unit</th>
+                                        <th>Price</th>
+                                        <th>Source</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+
+                                <tbody>
+                                    {pageProducts.map((item) => (
+                                        <tr key={item.product_id}>
+                                            <td>
+                                                <div className="products-table-product">
+                                                    <div className="products-table-image">
+                                                        {item.image_url ? (
+                                                            <img
+                                                                src={item.image_url}
+                                                                alt={item.product_name}
+                                                            />
+                                                        ) : (
+                                                            <Package
+                                                                size={22}
+                                                                strokeWidth={1.5}
+                                                            />
+                                                        )}
+                                                    </div>
+
+                                                    <div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openProductDetails(item)}
+                                                            aria-label={`View details for ${item.product_name}`}
+                                                            style={{
+                                                                display: "block",
+                                                                padding: 0,
+                                                                color: "inherit",
+                                                                background: "transparent",
+                                                                border: 0,
+                                                                font: "inherit",
+                                                                fontWeight: 700,
+                                                                textAlign: "left",
+                                                                cursor: "pointer"
+                                                            }}
+                                                        >
+                                                            {item.product_name}
+                                                        </button>
+                                                        <span>Product #{item.product_id}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <td>
+                                                <span className="products-table-barcode">
+                                                    {item.barcode}
+                                                </span>
+                                            </td>
+
+                                            <td title={item.brand || ""}>
+                                                {formatProductBrand(item.brand)}
+                                            </td>
+
+                                            <td>
+                                                <span
+                                                    className="products-category-cell"
+                                                    title={item.category || ""}
+                                                >
+                                                    {formatProductCategory(item.category)}
+                                                </span>
+                                            </td>
+
+                                            <td>{item.unit || "N/A"}</td>
+
+                                            <td>
+                                                <strong className="products-table-price">
+                                                    {formatCurrency(item.selling_price)}
+                                                </strong>
+                                            </td>
+
+                                            <td>
+                                                <span className="products-source-cell">
+                                                    {item.api_source || "Database"}
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <span
+                                                    className={
+                                                        item.status === "active"
+                                                            ? "products-status products-status-active"
+                                                            : "products-status products-status-inactive"
+                                                    }
+                                                >
+                                                    {item.status || "active"}
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <button
+                                                    type="button"
+                                                    className="products-edit-button"
+                                                    onClick={() => openEditModal(item)}
+                                                    disabled={savingEdit}
+                                                >
+                                                    <Edit2 size={15} />
+                                                    Edit
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="products-pagination">
+                            <span>
+                                Showing {firstVisibleProduct}–{lastVisibleProduct} of {filteredProducts.length} products
+                            </span>
+                            <div className="products-pagination-controls" aria-label="Product catalog pages">
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                                    disabled={visiblePage <= 1}
+                                    aria-label="Previous page"
+                                >
+                                    <ChevronLeft size={16} />
+                                    Previous
+                                </button>
+                                <span>Page {visiblePage} of {totalPages}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                                    disabled={visiblePage >= totalPages}
+                                    aria-label="Next page"
+                                >
+                                    Next
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    </>
                 )}
             </section>
 
@@ -1299,7 +1387,7 @@ function Products() {
                     }}
                 >
                     <section
-                        className="products-edit-modal products-details-modal"
+                        className="products-edit-modal"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="products-details-title"
@@ -1322,8 +1410,18 @@ function Products() {
                             </button>
                         </div>
 
-                        <div className="products-result-content">
-                            <div className="products-result-image">
+                        <div
+                            className="products-result-content"
+                            style={{
+                                gridTemplateColumns: "110px minmax(0, 1fr)",
+                                gap: "18px",
+                                alignItems: "start"
+                            }}
+                        >
+                            <div
+                                className="products-result-image"
+                                style={{ width: "110px" }}
+                            >
                                 {selectedProduct.image_url ? (
                                     <img
                                         src={selectedProduct.image_url}

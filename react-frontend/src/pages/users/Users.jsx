@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
+
+import { useCallback, useEffect, useState } from "react";
 import {
     Search,
     Plus,
     Pencil,
     UserX,
+    UserCheck,
     X,
+    ShieldAlert,
+    CheckCircle2,
     Users as UsersIcon,
     RefreshCw
 } from "lucide-react";
@@ -21,6 +25,10 @@ function Users() {
     const [showModal, setShowModal] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [saving, setSaving] = useState(false);
+    const [userToDeactivate, setUserToDeactivate] = useState(null);
+    const [deactivatingUserId, setDeactivatingUserId] = useState(null);
+    const [userToReactivate, setUserToReactivate] = useState(null);
+    const [reactivatingUserId, setReactivatingUserId] = useState(null);
 
     const [form, setForm] = useState({
         username: "",
@@ -29,10 +37,7 @@ function Users() {
         role: "manager"
     });
 
-    const fetchUsers = async () => {
-        setLoading(true);
-        setError("");
-
+    const fetchUsers = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/users/`, {
                 credentials: "include"
@@ -50,11 +55,11 @@ function Users() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
-        fetchUsers();
-    }, []);
+        Promise.resolve().then(() => fetchUsers());
+    }, [fetchUsers]);
 
     const resetForm = () => {
         setForm({
@@ -152,15 +157,13 @@ function Users() {
         }
     };
 
-    const handleDeactivate = async (user) => {
-        const confirmed = window.confirm(
-            `Are you sure you want to deactivate ${user.full_name}?`
-        );
+    const handleDeactivate = async () => {
+        if (!userToDeactivate || deactivatingUserId) return;
 
-        if (!confirmed) return;
-
+        const user = userToDeactivate;
         setError("");
         setMessage("");
+        setDeactivatingUserId(user.user_id);
 
         try {
             const response = await fetch(
@@ -178,9 +181,45 @@ function Users() {
             }
 
             setMessage(data.message || "User deactivated successfully.");
+            setUserToDeactivate(null);
             await fetchUsers();
         } catch (err) {
             setError(err.message || "Unable to deactivate user.");
+        } finally {
+            setDeactivatingUserId(null);
+        }
+    };
+
+    const handleReactivate = async () => {
+        if (!userToReactivate || reactivatingUserId) return;
+
+        const user = userToReactivate;
+        setError("");
+        setMessage("");
+        setReactivatingUserId(user.user_id);
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/users/${user.user_id}/reactivate`,
+                {
+                    method: "PUT",
+                    credentials: "include"
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Unable to reactivate user.");
+            }
+
+            setMessage(data.message || "User reactivated successfully.");
+            setUserToReactivate(null);
+            await fetchUsers();
+        } catch (err) {
+            setError(err.message || "Unable to reactivate user.");
+        } finally {
+            setReactivatingUserId(null);
         }
     };
 
@@ -218,7 +257,31 @@ function Users() {
             </div>
 
             {error && <div className="users-alert error">{error}</div>}
-            {message && <div className="users-alert success">{message}</div>}
+            {message && (
+                <div className="users-modal-backdrop users-success-backdrop">
+                    <section
+                        className="users-success-dialog"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="users-success-title"
+                        aria-describedby="users-success-message"
+                    >
+                        <div className="users-success-icon">
+                            <CheckCircle2 size={25} />
+                        </div>
+                        <h2 id="users-success-title">Success</h2>
+                        <p id="users-success-message">{message}</p>
+                        <button
+                            type="button"
+                            className="users-primary-button"
+                            onClick={() => setMessage("")}
+                            autoFocus
+                        >
+                            Done
+                        </button>
+                    </section>
+                </div>
+            )}
 
             <div className="users-stat-card">
                 <div className="users-stat-icon">
@@ -325,9 +388,19 @@ function Users() {
                                                         type="button"
                                                         className="deactivate"
                                                         title="Deactivate user"
-                                                        onClick={() => handleDeactivate(user)}
+                                                        onClick={() => setUserToDeactivate(user)}
                                                     >
                                                         <UserX size={16} />
+                                                    </button>
+                                                )}
+                                                {user.status === "inactive" && (
+                                                    <button
+                                                        type="button"
+                                                        className="reactivate"
+                                                        title="Reactivate user"
+                                                        onClick={() => setUserToReactivate(user)}
+                                                    >
+                                                        <UserCheck size={16} />
                                                     </button>
                                                 )}
                                             </div>
@@ -440,6 +513,93 @@ function Users() {
                                 </button>
                             </div>
                         </form>
+                    </section>
+                </div>
+            )}
+
+            {userToDeactivate && (
+                <div className="users-modal-backdrop">
+                    <section
+                        className="users-confirm-dialog"
+                        role="alertdialog"
+                        aria-modal="true"
+                        aria-labelledby="deactivate-user-title"
+                        aria-describedby="deactivate-user-description"
+                    >
+                        <div className="users-confirm-icon">
+                            <ShieldAlert size={23} />
+                        </div>
+                        <h2 id="deactivate-user-title">Deactivate this account?</h2>
+                        <p id="deactivate-user-description">
+                            <strong>{userToDeactivate.full_name}</strong> will no longer be able to sign in.
+                            Their existing records and audit history will be kept.
+                        </p>
+                        {error && (
+                            <p className="users-confirm-error" role="alert">
+                                {error}
+                            </p>
+                        )}
+                        <div className="users-confirm-actions">
+                            <button
+                                type="button"
+                                className="users-cancel-button"
+                                onClick={() => setUserToDeactivate(null)}
+                                disabled={deactivatingUserId !== null}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="users-deactivate-confirm-button"
+                                onClick={handleDeactivate}
+                                disabled={deactivatingUserId !== null}
+                            >
+                                {deactivatingUserId !== null ? "Deactivating…" : "Deactivate account"}
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            )}
+
+            {userToReactivate && (
+                <div className="users-modal-backdrop">
+                    <section
+                        className="users-confirm-dialog users-reactivate-dialog"
+                        role="alertdialog"
+                        aria-modal="true"
+                        aria-labelledby="reactivate-user-title"
+                        aria-describedby="reactivate-user-description"
+                    >
+                        <div className="users-reactivate-icon">
+                            <UserCheck size={23} />
+                        </div>
+                        <h2 id="reactivate-user-title">Reactivate this account?</h2>
+                        <p id="reactivate-user-description">
+                            <strong>{userToReactivate.full_name}</strong> will be able to sign in again using their existing account.
+                        </p>
+                        {error && (
+                            <p className="users-confirm-error" role="alert">
+                                {error}
+                            </p>
+                        )}
+                        <div className="users-confirm-actions">
+                            <button
+                                type="button"
+                                className="users-cancel-button"
+                                onClick={() => setUserToReactivate(null)}
+                                disabled={reactivatingUserId !== null}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="users-reactivate-confirm-button"
+                                onClick={handleReactivate}
+                                disabled={reactivatingUserId !== null}
+                            >
+                                {reactivatingUserId !== null ? "Reactivating…" : "Reactivate account"}
+                            </button>
+                        </div>
                     </section>
                 </div>
             )}

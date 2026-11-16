@@ -357,20 +357,21 @@
 .botanical-kpi-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
+    gap: 16px;
     margin-bottom: 23px;
 }
 
 .botanical-kpi-card {
     display: flex;
-    align-items: flex-start;
-    gap: 13px;
-    min-height: 130px;
-    padding: 19px 17px;
-    background: var(--surface, #ffffff);
-    border: 1px solid var(--border, #d5e8de);
-    border-radius: 15px;
-    box-shadow: 0 4px 14px rgba(11, 61, 46, 0.035);
+    align-items: center;
+    gap: 15px;
+    min-height: 108px;
+    padding: 17px 20px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fbf9 100%);
+    border: 1px solid #d9e8df;
+    border-left: 3px solid #8db79d;
+    border-radius: 17px;
+    box-shadow: 0 4px 13px rgb(11 61 46 / 4%);
     transition:
         transform 160ms ease,
         border-color 160ms ease,
@@ -387,13 +388,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 43px;
-    height: 43px;
-    flex: 0 0 43px;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
     color: var(--green-900, #145c46);
     background: var(--green-50, #eaf6f0);
     border: 1px solid var(--border, #d5e8de);
-    border-radius: 12px;
+    border-radius: 14px;
 }
 
 /* KPI icons share one green family; status colors are reserved for alerts. */
@@ -408,20 +409,24 @@
 .botanical-kpi-copy {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    flex: 1;
     min-width: 0;
+    text-align: center;
 }
 
 .botanical-kpi-copy>span {
-    margin: 1px 0 7px;
+    margin: 0 0 5px;
     color: var(--text-secondary, #63786d);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 650;
+    letter-spacing: 0.01em;
 }
 
 .botanical-kpi-copy strong {
     overflow-wrap: anywhere;
     color: var(--green-950, #0b3d2e);
-    font-size: clamp(20px, 1.7vw, 26px);
+    font-size: clamp(22px, 1.8vw, 28px);
     font-weight: 750;
     letter-spacing: -0.4px;
     line-height: 1.15;
@@ -432,6 +437,188 @@
     color: var(--text-secondary, #63786d);
     font-size: 10px;
     line-height: 1.4;
+}
+
+.botanical-sales-performance-panel {
+    margin: 0 0 23px;
+    padding: 21px 22px 20px;
+    border: 1px solid #d6e6dc;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 7px 22px rgb(11 61 46 / 5%);
+}
+
+.botanical-sales-performance-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    margin-bottom: 17px;
+}
+
+.botanical-sales-performance-heading h2 {
+    margin: 0;
+    color: var(--green-950, #0b3d2e);
+    font-size: 20px;
+    font-weight: 750;
+    letter-spacing: -0.35px;
+}
+
+.botanical-sales-performance-heading .botanical-panel-eyebrow {
+    margin: 0;
+}
+
+.botanical-sales-performance-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+    gap: 15px;
+}
+
+.botanical-sales-performance-group {
+    min-width: 0;
+    padding: 15px;
+    border: 1px solid #e0ebe5;
+    border-radius: 14px;
+    background: #f8fbf9;
+}
+
+.botanical-sales-forecast-group {
+    background: linear-gradient(145deg, #f8fbf9 0%, #f3f8f5 100%);
+}
+
+.botanical-sales-performance-group-heading {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 36px;
+    margin-bottom: 13px;
+}
+
+.botanical-sales-performance-group-heading h3 {
+    margin: 0;
+    color: var(--green-950, #0b3d2e);
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.botanical-profitability-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.botanical-profitability-metrics article {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid #e1ebe5;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 2px 7px rgb(11 61 46 / 3%);
+}
+
+.botanical-profitability-metrics article.botanical-profitability-profit {
+    border-color: #cfe2d7;
+    background: #f0f7f3;
+}
+
+.botanical-profitability-icon {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    place-items: center;
+    border: 1px solid #d5e8de;
+    border-radius: 11px;
+    background: #eaf6f0;
+    color: var(--green-900, #145c46);
+}
+
+.botanical-profitability-metrics article>div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.botanical-profitability-metrics article>div>span {
+    color: var(--text-secondary, #63786d);
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.botanical-profitability-metrics strong {
+    overflow-wrap: anywhere;
+    color: var(--green-950, #0b3d2e);
+    font-size: clamp(16px, 1.45vw, 21px);
+    font-weight: 750;
+}
+
+.botanical-profitability-note {
+    margin: 11px 0 0;
+    color: var(--text-secondary, #63786d);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.botanical-sales-forecast-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.botanical-sales-forecast-metrics article {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 7px;
+    min-height: 78px;
+    padding: 12px;
+    border: 1px solid #e1ebe5;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 2px 7px rgb(11 61 46 / 3%);
+}
+
+.botanical-sales-forecast-metrics article span {
+    color: var(--text-secondary, #63786d);
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.botanical-sales-forecast-metrics article strong {
+    overflow-wrap: anywhere;
+    color: var(--green-950, #0b3d2e);
+    font-size: clamp(16px, 1.35vw, 20px);
+    font-weight: 750;
+}
+
+.botanical-sales-forecast-note,
+.botanical-sales-forecast-empty {
+    margin: 10px 0 0;
+    color: var(--text-secondary, #63786d);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.botanical-sales-forecast-note {
+    padding: 9px 11px;
+    border-left: 3px solid #8db99e;
+    border-radius: 0 8px 8px 0;
+    background: #edf5f0;
+}
+
+.botanical-sales-forecast-empty {
+    display: grid;
+    min-height: 96px;
+    place-items: center;
+    border: 1px dashed #d5e8de;
+    border-radius: 12px;
+    background: #f8fbf9;
+    text-align: center;
 }
 
 .botanical-manager-overview {
@@ -463,8 +650,7 @@
     margin-bottom: 19px;
 }
 
-.botanical-panel-heading h2,
-.botanical-section-title-row h2 {
+.botanical-panel-heading h2 {
     margin: 0;
     color: var(--green-950, #0b3d2e);
     font-size: 20px;
@@ -507,62 +693,67 @@
     background: var(--green-50, #eaf6f0);
 }
 
-.botanical-stock-total {
+.botanical-stock-health-panel {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: 4px 0 14px;
-}
-
-.botanical-stock-total>div:first-child {
-    display: flex;
+    min-width: 0;
     flex-direction: column;
-    gap: 4px;
+    padding: 18px;
 }
 
-.botanical-stock-total span {
-    color: var(--text-secondary, #63786d);
-    font-size: 11px;
+.botanical-stock-health-panel .botanical-panel-heading {
+    margin-bottom: 14px;
 }
 
-.botanical-stock-total strong {
-    color: var(--green-950, #0b3d2e);
-    font-size: 28px;
-    font-weight: 750;
+.botanical-stock-health-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    align-items: start;
+    align-content: start;
+    flex: 1;
+    gap: 16px;
+    padding-top: 6px;
 }
 
-.botanical-stock-total-mark {
+.botanical-stock-donut {
+    display: grid;
+    width: 168px;
+    aspect-ratio: 1;
+    place-items: center;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgb(11 61 46 / 5%);
+}
+
+.botanical-stock-donut-center {
     display: flex;
+    width: 110px;
+    aspect-ratio: 1;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    color: var(--green-800, #1e7a5d);
-    background: var(--green-50, #eaf6f0);
-    border: 1px solid var(--border, #d5e8de);
+    gap: 2px;
+    border: 1px solid #e1ebe5;
     border-radius: 50%;
+    background: #ffffff;
 }
 
-.botanical-stock-bar {
-    display: flex;
-    width: 100%;
-    height: 11px;
-    overflow: hidden;
-    background: #edf2ef;
-    border-radius: 999px;
+.botanical-stock-donut-center strong {
+    color: var(--green-950, #0b3d2e);
+    font-size: 23px;
+    font-weight: 750;
+    line-height: 1;
 }
 
-.botanical-stock-bar span {
-    display: block;
-    height: 100%;
-    transition: width 220ms ease;
+.botanical-stock-donut-center span {
+    color: var(--text-secondary, #63786d);
+    font-size: 10px;
 }
 
 .botanical-stock-legend {
     display: grid;
+    width: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px 15px;
-    margin-top: 18px;
+    gap: 8px 12px;
 }
 
 .botanical-stock-legend-item {
@@ -570,6 +761,10 @@
     align-items: center;
     gap: 7px;
     min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid #e1ebe5;
+    border-radius: 9px;
+    background: #ffffff;
     color: var(--text-secondary, #63786d);
     font-size: 11px;
 }
@@ -584,7 +779,12 @@
 .botanical-stock-legend-item strong {
     margin-left: auto;
     color: var(--green-950, #0b3d2e);
-    font-size: 12px;
+    font-size: 11px;
+}
+
+.botanical-stock-health-panel>.botanical-text-link {
+    margin-top: auto;
+    padding-top: 14px;
 }
 
 .botanical-text-link {
@@ -696,114 +896,6 @@
     color: var(--text-secondary, #63786d);
     font-size: 11px;
     line-height: 1.5;
-}
-
-.botanical-quick-actions-section {
-    margin-bottom: 24px;
-}
-
-.botanical-section-title-row {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 15px;
-    margin-bottom: 13px;
-}
-
-.botanical-section-title-row h2 {
-    font-size: 21px;
-}
-
-.botanical-section-note {
-    color: var(--text-secondary, #63786d);
-    font-size: 11px;
-}
-
-.botanical-quick-actions {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-}
-
-.botanical-quick-actions-cashier {
-    grid-template-columns: minmax(240px, 360px);
-}
-
-.botanical-quick-action {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    min-width: 0;
-    min-height: 82px;
-    padding: 14px;
-    color: inherit;
-    text-align: left;
-    background: var(--surface, #ffffff);
-    border: 1px solid var(--border, #d5e8de);
-    border-radius: 13px;
-    cursor: pointer;
-    transition:
-        transform 160ms ease,
-        border-color 160ms ease,
-        box-shadow 160ms ease;
-}
-
-.botanical-quick-action:hover {
-    transform: translateY(-2px);
-    border-color: var(--green-300, #a7d6c0);
-    box-shadow: 0 8px 18px rgba(11, 61, 46, 0.08);
-}
-
-.botanical-quick-action-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    flex: 0 0 42px;
-    color: var(--green-900, #145c46);
-    background: var(--green-50, #eaf6f0);
-    border: 1px solid var(--border, #d5e8de);
-    border-radius: 11px;
-}
-
-/* Keep shortcut icon colors consistent across destinations. */
-.botanical-quick-action-icon.tone-green,
-.botanical-quick-action-icon.tone-orange,
-.botanical-quick-action-icon.tone-sage,
-.botanical-quick-action-icon.tone-olive {
-    color: var(--green-900, #145c46);
-    background: var(--green-50, #eaf6f0);
-}
-
-.botanical-quick-action-copy {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 5px;
-    min-width: 0;
-}
-
-.botanical-quick-action-copy strong {
-    color: var(--green-950, #0b3d2e);
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.35;
-}
-
-.botanical-quick-action-copy small {
-    color: var(--text-secondary, #63786d);
-    font-size: 10px;
-    line-height: 1.4;
-}
-
-.botanical-quick-action-arrow {
-    flex: 0 0 auto;
-    color: var(--green-700, #2e9d74);
-}
-
-.botanical-quick-action:hover .botanical-quick-action-arrow {
-    color: var(--green-950, #0b3d2e);
 }
 
 .botanical-panel-heading-with-action {
@@ -992,9 +1084,6 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .botanical-quick-actions {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 }
 
 @media (max-width: 900px) {
@@ -1009,6 +1098,15 @@
 
     .botanical-manager-overview {
         grid-template-columns: 1fr;
+    }
+
+    .botanical-sales-performance-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .botanical-sales-forecast-group {
+        padding: 15px;
+        border: 1px solid #e0ebe5;
     }
 
     .botanical-welcome-art {
@@ -1073,6 +1171,30 @@
         font-size: 24px;
     }
 
+    .botanical-sales-performance-panel {
+        padding: 15px;
+    }
+
+    .botanical-profitability-metrics {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .botanical-sales-forecast-metrics {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .botanical-stock-health-content {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: center;
+        gap: 13px;
+    }
+
+    .botanical-stock-donut {
+        width: 144px;
+    }
+
     .botanical-panel {
         padding: 17px;
         border-radius: 14px;
@@ -1083,19 +1205,8 @@
     }
 
     .botanical-stock-legend {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
-
-    .botanical-quick-actions,
-    .botanical-quick-actions-cashier {
-        grid-template-columns: 1fr;
-    }
-
-    .botanical-section-title-row {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 7px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 12px;
     }
 
     .botanical-panel-heading-with-action {
@@ -1188,26 +1299,10 @@
 }
 
 
-.botanical-dashboard-analytics {
-    grid-column: 1 / -1;
-    min-width: 0;
-}
-
-.botanical-dashboard-analytics>.premium-reports-page {
-    width: 100%;
-}
-
-.botanical-dashboard-analytics {
-    align-self: start;
-    padding: 0;
-    background: transparent;
-    border: 0;
-    box-shadow: none;
-}
-
-/* Remove the empty overview column left after relocating the snapshot. */
+/* Keep inventory health and FEFO together above the dashboard analytics. */
 .botanical-manager-overview {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
+    align-items: stretch;
 }
 
 /* Row content no longer reserves room for decorative icons or helper captions. */
@@ -1224,4 +1319,257 @@
 
 .botanical-stockout-history-summary {
     padding-left: 0;
+}
+
+
+
+/* FEFO shelf rotation recommendations */
+.botanical-fefo-panel {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.botanical-fefo-panel .botanical-panel-heading {
+    margin-bottom: 14px;
+}
+
+.botanical-fefo-list {
+    display: grid;
+    gap: 8px;
+}
+
+.botanical-fefo-row {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 11px;
+    border: 1px solid #e0ebe4;
+    border-radius: 11px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbf9 100%);
+}
+
+.botanical-fefo-rank {
+    display: grid;
+    width: 28px;
+    height: 28px;
+    place-items: center;
+    border: 1px solid #d1e6d9;
+    border-radius: 9px;
+    background: #eaf6f0;
+    color: #145c46;
+    font-size: 0.76rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+}
+
+.botanical-fefo-product,
+.botanical-fefo-expiry {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.botanical-fefo-product strong {
+    overflow: hidden;
+    color: #0b3d2e;
+    font-size: 0.85rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.botanical-fefo-product span,
+.botanical-fefo-expiry span {
+    color: #718078;
+    font-size: 0.72rem;
+    line-height: 1.35;
+}
+
+.botanical-fefo-expiry {
+    align-items: flex-end;
+    text-align: right;
+}
+
+.botanical-fefo-expiry strong {
+    color: #145c46;
+    font-size: 0.77rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.botanical-fefo-panel>.botanical-text-link {
+    align-self: flex-start;
+    margin-top: auto;
+    padding-top: 14px;
+}
+
+.botanical-fefo-empty {
+    padding: 20px 12px;
+}
+
+@media (max-width: 540px) {
+    .botanical-fefo-row {
+        grid-template-columns: 28px minmax(0, 1fr);
+    }
+
+    .botanical-fefo-expiry {
+        grid-column: 2;
+        align-items: flex-start;
+        text-align: left;
+    }
+}
+
+/* Dashboard-owned analytics layout; card visuals are shared with Reports. */
+.dashboard-analytics-grid {
+    --reports-forest: #0b3d2e;
+    --reports-green: #145c46;
+    --reports-leaf: #1e7a5d;
+    --reports-mint: #eaf6f0;
+    --reports-border: #d9e8df;
+    --reports-text: #20352b;
+    --reports-muted: #718078;
+
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 14px;
+    margin-bottom: 16px;
+    min-width: 0;
+}
+
+.dashboard-analytics-grid>.reports-main-grid.reports-risk-grid {
+    grid-column: 1;
+    grid-row: 1;
+    display: block;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+}
+
+.dashboard-analytics-grid .reports-risk-grid .reports-panel {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    flex-direction: column;
+}
+
+.dashboard-analytics-grid>.reports-runout-panel {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.reports-runout-panel .reports-panel-title {
+    margin-bottom: 15px;
+}
+
+.reports-runout-list {
+    gap: 8px;
+}
+
+.reports-runout-list .reports-risk-item {
+    padding: 10px 12px;
+}
+
+.reports-runout-days {
+    color: var(--reports-green, #145c46);
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.reports-runout-empty {
+    flex: 1;
+    min-height: 88px;
+}
+
+.reports-runout-history-note {
+    margin: 10px 0 0;
+    color: var(--reports-muted, #718078);
+    font-size: 0.73rem;
+    line-height: 1.45;
+}
+
+.reports-runout-link {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 6px;
+    margin-top: auto;
+    padding: 14px 0 0;
+    border: 0;
+    background: transparent;
+    color: var(--reports-green, #145c46);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.reports-runout-link:hover {
+    color: var(--reports-forest, #0b3d2e);
+}
+
+.dashboard-analytics-grid>.reports-forecast-panel {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    align-self: start;
+}
+
+.dashboard-analytics-grid>.reports-main-grid:not(.reports-risk-grid) {
+    grid-column: 1;
+    grid-row: 3;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.dashboard-analytics-grid>.reports-least-products-panel {
+    grid-column: 2;
+    grid-row: 3;
+}
+
+.dashboard-analytics-grid .reports-risk-empty {
+    min-height: 88px;
+    padding: 12px;
+}
+
+.dashboard-analytics-grid .reports-forecast-panel>div[style] {
+    overflow: hidden !important;
+}
+
+.dashboard-analytics-grid .reports-forecast-panel svg {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-height: 320px;
+}
+
+.dashboard-analytics-grid .reports-risk-list,
+.dashboard-analytics-grid .reports-ranking-list {
+    gap: 8px;
+}
+
+.dashboard-analytics-grid .reports-ranking-item {
+    padding-block: 8px;
+}
+
+@media (max-width: 900px) {
+    .botanical-manager-overview {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dashboard-analytics-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dashboard-analytics-grid>.reports-main-grid.reports-risk-grid,
+    .dashboard-analytics-grid>.reports-runout-panel,
+    .dashboard-analytics-grid>.reports-forecast-panel,
+    .dashboard-analytics-grid>.reports-main-grid:not(.reports-risk-grid),
+    .dashboard-analytics-grid>.reports-least-products-panel {
+        grid-column: 1;
+        grid-row: auto;
+    }
 }

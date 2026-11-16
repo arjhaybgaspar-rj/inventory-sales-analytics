@@ -74,6 +74,56 @@ def get_sales_date_filter(alias="s"):
     return " AND ".join(conditions) or "1 = 1", parameters, None
 
 
+# Original quantities for old batches can sometimes be reconstructed from
+# current stock plus recorded sales and losses. Do that only when there are no
+# adjustment movements; otherwise an adjustment could make the reconstruction
+# inaccurate. Prefer the explicit original quantity or stock-in movements.
+BATCH_COST_BASIS_SQL = """
+    SELECT
+        batch.batch_id,
+        COALESCE(
+            NULLIF(batch.initial_quantity, 0),
+            NULLIF(received.received_quantity, 0),
+            CASE
+                WHEN COALESCE(adjustments.adjustment_count, 0) = 0 THEN
+                    batch.current_quantity
+                    + COALESCE(sales.sold_quantity, 0)
+                    + COALESCE(losses.loss_quantity, 0)
+                ELSE NULL
+            END
+        ) AS original_quantity
+    FROM (
+        SELECT
+            batch_id,
+            quantity AS current_quantity,
+            initial_quantity
+        FROM batches
+    ) batch
+    LEFT JOIN (
+        SELECT batch_id, SUM(quantity) AS received_quantity
+        FROM inventory_movements
+        WHERE movement_type = 'IN'
+        GROUP BY batch_id
+    ) received ON received.batch_id = batch.batch_id
+    LEFT JOIN (
+        SELECT batch_id, SUM(quantity) AS sold_quantity
+        FROM sale_items
+        GROUP BY batch_id
+    ) sales ON sales.batch_id = batch.batch_id
+    LEFT JOIN (
+        SELECT batch_id, SUM(quantity) AS loss_quantity
+        FROM inventory_losses
+        GROUP BY batch_id
+    ) losses ON losses.batch_id = batch.batch_id
+    LEFT JOIN (
+        SELECT batch_id, COUNT(*) AS adjustment_count
+        FROM inventory_movements
+        WHERE movement_type = 'ADJUSTMENT'
+        GROUP BY batch_id
+    ) adjustments ON adjustments.batch_id = batch.batch_id
+"""
+
+
 # ============================================================
 # GROSS PROFIT REPORT
 # ============================================================
@@ -81,7 +131,7 @@ def get_sales_date_filter(alias="s"):
 @report_bp.route("/gross-profit", methods=["GET"])
 @login_required(["admin", "owner", "manager"])
 def get_gross_profit_report():
-    """Report gross profit only where batch cost and original quantity are known."""
+    """Report gross profit using recorded or safely reconstructed batch quantities."""
 
     date_filter, date_parameters, date_error = get_sales_date_filter("s")
 
@@ -104,8 +154,10 @@ def get_gross_profit_report():
 
                 COALESCE(SUM(
                     CASE
-                        WHEN b.initial_quantity > 0 THEN
-                            (b.acquisition_cost / b.initial_quantity)
+                        WHEN cost_basis.original_quantity > 0
+                            AND b.acquisition_cost IS NOT NULL
+                        THEN
+                            (b.acquisition_cost / cost_basis.original_quantity)
                             * si.quantity
                         ELSE 0
                     END
@@ -113,8 +165,9 @@ def get_gross_profit_report():
 
                 COALESCE(SUM(
                     CASE
-                        WHEN b.initial_quantity IS NULL
-                            OR b.initial_quantity <= 0
+                        WHEN cost_basis.original_quantity IS NULL
+                            OR cost_basis.original_quantity <= 0
+                            OR b.acquisition_cost IS NULL
                         THEN si.subtotal
                         ELSE 0
                     END
@@ -122,8 +175,9 @@ def get_gross_profit_report():
 
                 SUM(
                     CASE
-                        WHEN b.initial_quantity IS NULL
-                            OR b.initial_quantity <= 0
+                        WHEN cost_basis.original_quantity IS NULL
+                            OR cost_basis.original_quantity <= 0
+                            OR b.acquisition_cost IS NULL
                         THEN 1
                         ELSE 0
                     END
@@ -136,6 +190,10 @@ def get_gross_profit_report():
 
             INNER JOIN batches b
                 ON b.batch_id = si.batch_id
+
+            INNER JOIN (
+                {BATCH_COST_BASIS_SQL}
+            ) cost_basis ON cost_basis.batch_id = b.batch_id
 
             WHERE {date_filter}
         """
@@ -172,8 +230,9 @@ def get_gross_profit_report():
                 result.get("sale_lines_with_unknown_cost") or 0
             ),
             "message": (
-                "Gross profit excludes sales from batches whose original "
-                "received quantity is unknown. This report does not include "
+                "Gross profit excludes sales from batches whose cost basis "
+                "cannot be recovered from batch, stock-in, or unadjusted stock "
+                "history. This report does not include "
                 "operating expenses, taxes, discounts outside recorded sale "
                 "subtotals, or other overhead."
             )
@@ -227,9 +286,10 @@ def get_product_profitability_report():
 
                 COALESCE(SUM(
                     CASE
-                        WHEN b.initial_quantity > 0
+                        WHEN cost_basis.original_quantity > 0
+                            AND b.acquisition_cost IS NOT NULL
                         THEN (
-                            b.acquisition_cost / b.initial_quantity
+                            b.acquisition_cost / cost_basis.original_quantity
                         ) * si.quantity
                         ELSE 0
                     END
@@ -237,8 +297,9 @@ def get_product_profitability_report():
 
                 COALESCE(SUM(
                     CASE
-                        WHEN b.initial_quantity IS NULL
-                            OR b.initial_quantity <= 0
+                        WHEN cost_basis.original_quantity IS NULL
+                            OR cost_basis.original_quantity <= 0
+                            OR b.acquisition_cost IS NULL
                         THEN si.subtotal
                         ELSE 0
                     END
@@ -246,8 +307,9 @@ def get_product_profitability_report():
 
                 SUM(
                     CASE
-                        WHEN b.initial_quantity IS NULL
-                            OR b.initial_quantity <= 0
+                        WHEN cost_basis.original_quantity IS NULL
+                            OR cost_basis.original_quantity <= 0
+                            OR b.acquisition_cost IS NULL
                         THEN 1
                         ELSE 0
                     END
@@ -260,6 +322,10 @@ def get_product_profitability_report():
 
             INNER JOIN batches b
                 ON b.batch_id = si.batch_id
+
+            INNER JOIN (
+                {BATCH_COST_BASIS_SQL}
+            ) cost_basis ON cost_basis.batch_id = b.batch_id
 
             INNER JOIN products p
                 ON p.product_id = b.product_id
@@ -327,8 +393,8 @@ def get_product_profitability_report():
             "products": products,
             "message": (
                 "Profit and margin use only sales from batches with "
-                "a recorded original quantity. Unknown-cost revenue "
-                "is shown separately."
+                "a recorded or safely reconstructed original quantity. "
+                "Unknown-cost revenue is shown separately."
             )
         }), 200
 

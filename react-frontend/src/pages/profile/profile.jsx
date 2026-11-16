@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
     UserRound,
     LockKeyhole,
@@ -38,14 +38,6 @@ function Profile() {
         new: false,
         confirm: false
     });
-
-    useEffect(() => {
-        setFormData((previous) => ({
-            ...previous,
-            full_name: user.full_name || "",
-            username: user.username || ""
-        }));
-    }, [user]);
 
     const handleChange = (event) => {
         const { name, value } = event.target;
@@ -311,10 +303,6 @@ function Profile() {
 
                             <div>
                                 <h2>Change Password</h2>
-                                <p>
-                                    Leave the new password fields empty if
-                                    you do not want to change your password.
-                                </p>
                             </div>
                         </div>
 

@@ -1,22 +1,21 @@
+
+
 import {
     AlertCircle,
     AlertTriangle,
     Archive,
     Boxes,
-    CalendarDays,
     CheckCircle2,
     CircleDollarSign,
-    ClipboardList,
     History,
     Package,
     Plus,
-    RefreshCw,
     Search,
-    Sparkles,
     X
 } from "lucide-react";
 
 import {
+    useCallback,
     useEffect,
     useMemo,
     useState
@@ -164,19 +163,23 @@ function Inventory() {
     ] = useState("10");
 
     const [inventoryAction, setInventoryAction] = useState(null);
+    const [expirySettingProduct, setExpirySettingProduct] = useState(null);
+    const [expirySettingDraft, setExpirySettingDraft] = useState("");
+    const [savingProductExpiry, setSavingProductExpiry] = useState(false);
+    const [selectedMovement, setSelectedMovement] = useState(null);
     const [actionQuantity, setActionQuantity] = useState("");
     const [actionReason, setActionReason] = useState("");
     const [actionNotes, setActionNotes] = useState("");
 
 
-    const showMessage = (
+    const showMessage = useCallback((
         text,
         type = "success"
     ) => {
         setMessage(text);
 
         setMessageType(type);
-    };
+    }, []);
 
 
     useEffect(() => {
@@ -308,231 +311,211 @@ function Inventory() {
     };
 
 
-    const loadInventory =
-        async () => {
-            setInventoryLoading(
-                true
-            );
-
-            try {
-                const response =
-                    await fetch(
-                        `${API_URL}/inventory`,
-                        {
-                            credentials:
-                                "include"
-                        }
-                    );
-
-                const data =
-                    await response.json();
-
-
-                if (
-                    response.ok &&
-                    data.success
-                ) {
-                    setInventory(
-                        Array.isArray(
-                            data.inventory
-                        )
-                            ? data.inventory
-                            : []
-                    );
-                } else {
-                    showMessage(
-                        data.message ||
-                        "Unable to load inventory.",
-                        "error"
-                    );
-                }
-            } catch (error) {
-                console.error(
-                    "Inventory error:",
-                    error
+    const loadInventory = useCallback(async () => {
+        try {
+            const response =
+                await fetch(
+                    `${API_URL}/inventory`,
+                    {
+                        credentials:
+                            "include"
+                    }
                 );
 
+            const data =
+                await response.json();
+
+
+            if (
+                response.ok &&
+                data.success
+            ) {
+                setInventory(
+                    Array.isArray(
+                        data.inventory
+                    )
+                        ? data.inventory
+                        : []
+                );
+            } else {
                 showMessage(
+                    data.message ||
                     "Unable to load inventory.",
                     "error"
                 );
-            } finally {
-                setInventoryLoading(
-                    false
-                );
             }
-        };
-
-
-    const loadProducts =
-        async () => {
-            setProductsLoading(
-                true
+        } catch (error) {
+            console.error(
+                "Inventory error:",
+                error
             );
 
-            try {
-                const response =
-                    await fetch(
-                        `${API_URL}/products`,
-                        {
-                            credentials:
-                                "include"
-                        }
-                    );
-
-                const data =
-                    await response.json();
+            showMessage(
+                "Unable to load inventory.",
+                "error"
+            );
+        } finally {
+            setInventoryLoading(
+                false
+            );
+        }
+    }, [showMessage]);
 
 
-                if (
-                    response.ok &&
-                    data.success
-                ) {
-                    setProducts(
-                        Array.isArray(
-                            data.products
-                        )
-                            ? data.products
-                            : []
-                    );
-                } else {
-                    showMessage(
-                        data.message ||
-                        "Unable to load products.",
-                        "error"
-                    );
-                }
-            } catch (error) {
-                console.error(
-                    "Products error:",
-                    error
+    const loadProducts = useCallback(async () => {
+        try {
+            const response =
+                await fetch(
+                    `${API_URL}/products`,
+                    {
+                        credentials:
+                            "include"
+                    }
                 );
 
+            const data =
+                await response.json();
+
+
+            if (
+                response.ok &&
+                data.success
+            ) {
+                setProducts(
+                    Array.isArray(
+                        data.products
+                    )
+                        ? data.products
+                        : []
+                );
+            } else {
                 showMessage(
+                    data.message ||
                     "Unable to load products.",
                     "error"
                 );
-            } finally {
-                setProductsLoading(
-                    false
-                );
             }
-        };
-
-
-    const loadMovements =
-        async () => {
-            setMovementsLoading(
-                true
+        } catch (error) {
+            console.error(
+                "Products error:",
+                error
             );
 
-            try {
-                const response =
-                    await fetch(
-                        `${API_URL}/inventory/movements`,
-                        {
-                            credentials:
-                                "include"
-                        }
-                    );
-
-                const data =
-                    await response.json();
+            showMessage(
+                "Unable to load products.",
+                "error"
+            );
+        } finally {
+            setProductsLoading(
+                false
+            );
+        }
+    }, [showMessage]);
 
 
-                if (
-                    response.ok &&
-                    data.success
-                ) {
-                    setMovements(
-                        Array.isArray(
-                            data.movements
-                        )
-                            ? data.movements
-                            : []
-                    );
-                } else {
-                    showMessage(
-                        data.message ||
-                        "Unable to load inventory history.",
-                        "error"
-                    );
-                }
-            } catch (error) {
-                console.error(
-                    "Movements error:",
-                    error
+    const loadMovements = useCallback(async () => {
+        try {
+            const response =
+                await fetch(
+                    `${API_URL}/inventory/movements`,
+                    {
+                        credentials:
+                            "include"
+                    }
                 );
 
+            const data =
+                await response.json();
+
+
+            if (
+                response.ok &&
+                data.success
+            ) {
+                setMovements(
+                    Array.isArray(
+                        data.movements
+                    )
+                        ? data.movements
+                        : []
+                );
+            } else {
                 showMessage(
+                    data.message ||
                     "Unable to load inventory history.",
                     "error"
                 );
-            } finally {
-                setMovementsLoading(
-                    false
-                );
             }
-        };
-
-
-    const loadAlerts =
-        async () => {
-            setAlertsLoading(
-                true
+        } catch (error) {
+            console.error(
+                "Movements error:",
+                error
             );
 
-            try {
-                const response =
-                    await fetch(
-                        `${API_URL}/inventory/alerts`,
-                        {
-                            credentials:
-                                "include"
-                        }
-                    );
-
-                const data =
-                    await response.json();
+            showMessage(
+                "Unable to load inventory history.",
+                "error"
+            );
+        } finally {
+            setMovementsLoading(
+                false
+            );
+        }
+    }, [showMessage]);
 
 
-                if (
-                    response.ok &&
-                    data.success
-                ) {
-                    setAlerts(
-                        Array.isArray(
-                            data.alerts
-                        )
-                            ? data.alerts
-                            : []
-                    );
-                    const configuredDays = Number(data.near_expiry_days || 30);
-                    setNearExpiryDays(configuredDays);
-                    setNearExpiryDraft(String(configuredDays));
-                } else {
-                    showMessage(
-                        data.message ||
-                        "Unable to load inventory alerts.",
-                        "error"
-                    );
-                }
-            } catch (error) {
-                console.error(
-                    "Alerts error:",
-                    error
+    const loadAlerts = useCallback(async () => {
+        try {
+            const response =
+                await fetch(
+                    `${API_URL}/inventory/alerts`,
+                    {
+                        credentials:
+                            "include"
+                    }
                 );
 
+            const data =
+                await response.json();
+
+
+            if (
+                response.ok &&
+                data.success
+            ) {
+                setAlerts(
+                    Array.isArray(
+                        data.alerts
+                    )
+                        ? data.alerts
+                        : []
+                );
+                const configuredDays = Number(data.near_expiry_days || 30);
+                setNearExpiryDays(configuredDays);
+                setNearExpiryDraft(String(configuredDays));
+            } else {
                 showMessage(
+                    data.message ||
                     "Unable to load inventory alerts.",
                     "error"
                 );
-            } finally {
-                setAlertsLoading(
-                    false
-                );
             }
-        };
+        } catch (error) {
+            console.error(
+                "Alerts error:",
+                error
+            );
+
+            showMessage(
+                "Unable to load inventory alerts.",
+                "error"
+            );
+        } finally {
+            setAlertsLoading(
+                false
+            );
+        }
+    }, [showMessage]);
 
 
     const saveNearExpiryDays = async (event) => {
@@ -558,7 +541,7 @@ function Inventory() {
             setNearExpiryDays(Number(data.near_expiry_days));
             setNearExpiryDraft(String(data.near_expiry_days));
             showMessage(data.message || "Near-expiry threshold updated.", "success");
-            await loadAlerts();
+            await Promise.all([loadInventory(), loadAlerts()]);
         } catch (error) {
             showMessage(error.message || "Unable to save near-expiry threshold.", "error");
         } finally {
@@ -567,22 +550,68 @@ function Inventory() {
     };
 
 
-    const refreshAll =
-        async () => {
-            setMessage("");
+    const openProductExpirySetting = (item) => {
+        setExpirySettingProduct(item);
+        setExpirySettingDraft(
+            item.product_near_expiry_days == null
+                ? ""
+                : String(item.product_near_expiry_days)
+        );
+    };
 
-            await Promise.all([
-                loadInventory(),
-                loadProducts(),
-                loadMovements(),
-                loadAlerts()
-            ]);
-        };
+
+    const saveProductExpirySetting = async (event) => {
+        event.preventDefault();
+        if (!expirySettingProduct) return;
+
+        const days = expirySettingDraft.trim() === ""
+            ? null
+            : Number(expirySettingDraft);
+        if (days !== null && (!Number.isInteger(days) || days < 1 || days > 365)) {
+            showMessage("Enter a whole number from 1 to 365 days, or leave it blank to use the default.", "error");
+            return;
+        }
+
+        setSavingProductExpiry(true);
+        try {
+            const response = await fetch(
+                `${API_URL}/inventory/products/${expirySettingProduct.product_id}/near-expiry-days`,
+                {
+                    method: "PUT",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ near_expiry_days: days })
+                }
+            );
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || "Unable to save the product expiry threshold.");
+            }
+
+            setExpirySettingProduct(null);
+            await Promise.all([loadInventory(), loadAlerts()]);
+            showMessage(data.message || "Product expiry threshold updated.", "success");
+        } catch (error) {
+            showMessage(error.message || "Unable to save the product expiry threshold.", "error");
+        } finally {
+            setSavingProductExpiry(false);
+        }
+    };
+
+
+    const refreshAll = useCallback(async () => {
+        await Promise.all([
+            loadInventory(),
+            loadProducts(),
+            loadMovements(),
+            loadAlerts()
+        ]);
+    }, [loadAlerts, loadInventory, loadMovements, loadProducts]);
 
 
     useEffect(() => {
-        refreshAll();
-    }, []);
+        Promise.resolve().then(() => refreshAll());
+    }, [refreshAll]);
 
 
     const selectedProduct =
@@ -625,6 +654,22 @@ function Inventory() {
             );
         }, [inventory]);
 
+
+    const productStockTotals = useMemo(() => {
+        return inventory.reduce((totals, item) => {
+            const productKey = String(
+                item.product_id ?? item.product_name ?? item.barcode ?? ""
+            );
+            const quantity = Number(item.quantity) || 0;
+
+            totals.set(
+                productKey,
+                (totals.get(productKey) || 0) + quantity
+            );
+
+            return totals;
+        }, new Map());
+    }, [inventory]);
 
     const stockValue =
         useMemo(() => {
@@ -723,9 +768,9 @@ function Inventory() {
     const paginatedInventory =
         filteredInventory.slice(
             (currentInventoryPage - 1) *
-                INVENTORY_PAGE_SIZE,
+            INVENTORY_PAGE_SIZE,
             currentInventoryPage *
-                INVENTORY_PAGE_SIZE
+            INVENTORY_PAGE_SIZE
         );
 
 
@@ -786,9 +831,9 @@ function Inventory() {
     const paginatedMovements =
         filteredMovements.slice(
             (currentMovementPage - 1) *
-                INVENTORY_PAGE_SIZE,
+            INVENTORY_PAGE_SIZE,
             currentMovementPage *
-                INVENTORY_PAGE_SIZE
+            INVENTORY_PAGE_SIZE
         );
 
 
@@ -1173,22 +1218,25 @@ function Inventory() {
                     0
                 );
 
+            const statuses = [];
 
             if (
                 quantityValue ===
                 0
             ) {
-                return {
+                statuses.push({
                     label:
                         "Out of Stock",
 
                     className:
                         "inventory-status-out"
-                };
+                });
             }
 
 
-            if (item.expiry_date) {
+            // Expiry is relevant while there is stock in the batch. Keep it
+            // independent from the reorder check so both warnings can show.
+            if (quantityValue > 0 && item.expiry_date) {
                 const expiryDateValue =
                     parseDateOnly(
                         item.expiry_date
@@ -1210,62 +1258,68 @@ function Inventory() {
                     expiryDateValue <
                     today
                 ) {
-                    return {
+                    statuses.push({
                         label:
                             "Expired",
 
                         className:
                             "inventory-status-expired"
-                    };
-                }
+                    });
+                } else {
+                    const thresholdDays =
+                        Number(item.near_expiry_days) || nearExpiryDays || 30;
 
+                    const nearExpiryDate =
+                        new Date(today);
 
-                const thirtyDays =
-                    new Date(today);
+                    nearExpiryDate.setDate(
+                        nearExpiryDate.getDate() +
+                        thresholdDays
+                    );
 
-                thirtyDays.setDate(
-                    thirtyDays.getDate() +
-                    30
-                );
+                    if (
+                        expiryDateValue &&
+                        expiryDateValue <=
+                        nearExpiryDate
+                    ) {
+                        statuses.push({
+                            label:
+                                "Expiring Soon",
 
-
-                if (
-                    expiryDateValue &&
-                    expiryDateValue <=
-                    thirtyDays
-                ) {
-                    return {
-                        label:
-                            "Expiring Soon",
-
-                        className:
-                            "inventory-status-expiring"
-                    };
+                            className:
+                                "inventory-status-expiring"
+                        });
+                    }
                 }
             }
 
 
             if (
+                quantityValue > 0 &&
                 quantityValue <=
                 reorderValue
             ) {
-                return {
+                statuses.push({
                     label:
                         "Low Stock",
 
                     className:
                         "inventory-status-low"
-                };
+                });
             }
 
 
-            return {
-                label:
-                    "Available",
+            if (statuses.length === 0) {
+                statuses.push({
+                    label:
+                        "Available",
 
-                className:
-                    "inventory-status-available"
-            };
+                    className:
+                        "inventory-status-available"
+                });
+            }
+
+            return statuses;
         };
 
 
@@ -1321,13 +1375,6 @@ function Inventory() {
     };
 
 
-    const loadingEverything =
-        inventoryLoading &&
-        productsLoading &&
-        movementsLoading &&
-        alertsLoading;
-
-
     return (
         <div className="modern-inventory-page">
             <header className="inventory-modern-header">
@@ -1338,33 +1385,6 @@ function Inventory() {
 
 
                 </div>
-
-
-                <button
-                    type="button"
-                    className="inventory-header-refresh"
-                    onClick={
-                        refreshAll
-                    }
-                    disabled={
-                        loadingEverything ||
-                        saving
-                    }
-                >
-                    <RefreshCw
-                        size={17}
-                        strokeWidth={2}
-                        className={
-                            inventoryLoading ||
-                                alertsLoading ||
-                                movementsLoading
-                                ? "inventory-spin"
-                                : ""
-                        }
-                    />
-
-                    Refresh Inventory
-                </button>
             </header>
 
 
@@ -1388,9 +1408,6 @@ function Inventory() {
                             }
                         </strong>
 
-                        <small>
-                            Units in inventory
-                        </small>
                     </div>
                 </article>
 
@@ -1414,9 +1431,6 @@ function Inventory() {
                             }
                         </strong>
 
-                        <small>
-                            Recorded batches
-                        </small>
                     </div>
                 </article>
 
@@ -1440,9 +1454,6 @@ function Inventory() {
                             }
                         </strong>
 
-                        <small>
-                            {criticalAlertCount} critical
-                        </small>
                     </div>
                 </article>
 
@@ -1466,9 +1477,6 @@ function Inventory() {
                             )}
                         </strong>
 
-                        <small>
-                            Acquisition value
-                        </small>
                     </div>
                 </article>
             </section>
@@ -1956,29 +1964,6 @@ function Inventory() {
 
                         </div>
                     </div>
-
-
-                    <button
-                        type="button"
-                        className="inventory-section-refresh"
-                        onClick={
-                            loadAlerts
-                        }
-                        disabled={
-                            alertsLoading
-                        }
-                    >
-                        <RefreshCw
-                            size={16}
-                            className={
-                                alertsLoading
-                                    ? "inventory-spin"
-                                    : ""
-                            }
-                        />
-
-                        Refresh
-                    </button>
                 </div>
 
 
@@ -2022,8 +2007,8 @@ function Inventory() {
 
                 <form className="inventory-expiry-setting" onSubmit={saveNearExpiryDays}>
                     <div>
-                        <strong>Near-expiry alert window</strong>
-                        <span>Show batches expiring within the selected number of days. Current: {nearExpiryDays} days.</span>
+                        <strong>Default near-expiry alert</strong>
+                        <span>Product-specific thresholds can override this value.</span>
                     </div>
                     <label>
                         <span className="inventory-sr-only">Near-expiry threshold in days</span>
@@ -2242,17 +2227,10 @@ function Inventory() {
 
                         <div>
 
-
                             <h2>
                                 Inventory List
                             </h2>
 
-                            <p>
-                                Review current stock
-                                quantities, batches,
-                                costs, and expiry
-                                status.
-                            </p>
                         </div>
                     </div>
 
@@ -2299,29 +2277,6 @@ function Inventory() {
                                 </button>
                             )}
                         </div>
-
-
-                        <button
-                            type="button"
-                            className="inventory-section-refresh"
-                            onClick={
-                                loadInventory
-                            }
-                            disabled={
-                                inventoryLoading
-                            }
-                        >
-                            <RefreshCw
-                                size={16}
-                                className={
-                                    inventoryLoading
-                                        ? "inventory-spin"
-                                        : ""
-                                }
-                            />
-
-                            Refresh
-                        </button>
                     </div>
                 </div>
 
@@ -2354,174 +2309,203 @@ function Inventory() {
                     </div>
                 ) : (
                     <>
-                    <div className="inventory-table-wrapper">
-                        <table className="inventory-modern-table">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        Product
-                                    </th>
+                        <div className="inventory-table-wrapper">
+                            <table className="inventory-modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            Product
+                                        </th>
 
-                                    <th>
-                                        Batch
-                                    </th>
+                                        <th>
+                                            Batch
+                                        </th>
 
-                                    <th>
-                                        Quantity
-                                    </th>
+                                        <th>
+                                            Batch Qty
+                                        </th>
 
-                                    <th>
-                                        Reorder
-                                    </th>
+                                        <th>
+                                            Product Total
+                                        </th>
 
-                                    <th>
-                                        Cost
-                                    </th>
+                                        <th>
+                                            Reorder
+                                        </th>
 
-                                    <th>
-                                        Expiry
-                                    </th>
+                                        <th>
+                                            Cost
+                                        </th>
 
-                                    <th>
-                                        Received
-                                    </th>
+                                        <th>
+                                            Expiry
+                                        </th>
 
-                                    <th>
-                                        Status
-                                    </th>
+                                        <th>
+                                            Received
+                                        </th>
 
-                                    <th>
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
+                                        <th>
+                                            Status
+                                        </th>
 
-                            <tbody>
-                                {paginatedInventory.map(
-                                    (
-                                        item
-                                    ) => {
-                                        const status =
-                                            getInventoryStatus(
-                                                item
+                                        <th>
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {paginatedInventory.map(
+                                        (
+                                            item
+                                        ) => {
+                                            const productKey = String(
+                                                item.product_id ?? item.product_name ?? item.barcode ?? ""
                                             );
+                                            const productTotal =
+                                                productStockTotals.get(productKey) || 0;
+                                            const status =
+                                                getInventoryStatus(
+                                                    item
+                                                );
 
-                                        return (
-                                            <tr
-                                                key={
-                                                    item.inventory_id
-                                                }
-                                            >
-                                                <td>
-                                                    <div className="inventory-product-cell inventory-product-cell-image">
-                                                        <div className="inventory-table-product-image">
-                                                            {item.image_url ? (
-                                                                <img
-                                                                    src={
-                                                                        item.image_url
-                                                                    }
-                                                                    alt={
+                                            return (
+                                                <tr
+                                                    key={
+                                                        item.inventory_id
+                                                    }
+                                                >
+                                                    <td>
+                                                        <div className="inventory-product-cell inventory-product-cell-image">
+                                                            <div className="inventory-table-product-image">
+                                                                {item.image_url ? (
+                                                                    <img
+                                                                        src={
+                                                                            item.image_url
+                                                                        }
+                                                                        alt={
+                                                                            item.product_name
+                                                                        }
+                                                                    />
+                                                                ) : (
+                                                                    <Package
+                                                                        size={20}
+                                                                        strokeWidth={1.5}
+                                                                    />
+                                                                )}
+                                                            </div>
+
+                                                            <div>
+                                                                <strong>
+                                                                    {
                                                                         item.product_name
                                                                     }
-                                                                />
-                                                            ) : (
-                                                                <Package
-                                                                    size={20}
-                                                                    strokeWidth={1.5}
-                                                                />
-                                                            )}
+                                                                </strong>
+
+                                                                <span>
+                                                                    {
+                                                                        item.barcode
+                                                                    }
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="inventory-product-expiry-button"
+                                                                    onClick={() => openProductExpirySetting(item)}
+                                                                    disabled={!item.product_id}
+                                                                >
+                                                                    Expiry alert: {item.product_near_expiry_days == null
+                                                                        ? `Default (${item.near_expiry_days || nearExpiryDays} days)`
+                                                                        : `${item.product_near_expiry_days} days`}
+                                                                </button>
+                                                            </div>
                                                         </div>
+                                                    </td>
 
-                                                        <div>
-                                                            <strong>
-                                                                {
-                                                                    item.product_name
-                                                                }
-                                                            </strong>
+                                                    <td>
+                                                        {item.batch_number ||
+                                                            "N/A"}
+                                                    </td>
 
-                                                            <span>
-                                                                {
-                                                                    item.barcode
-                                                                }
-                                                            </span>
+                                                    <td>
+                                                        <strong className="inventory-quantity">
+                                                            {
+                                                                item.quantity
+                                                            }
+                                                        </strong>
+                                                    </td>
+
+                                                    <td>
+                                                        <strong className="inventory-quantity inventory-product-total">
+                                                            {Number(productTotal).toLocaleString("en-PH")} units
+                                                        </strong>
+                                                        <span className="inventory-product-total-caption">Across all batches</span>
+                                                    </td>
+
+                                                    <td>
+                                                        {
+                                                            item.reorder_level
+                                                        }
+                                                    </td>
+
+                                                    <td>
+                                                        {formatCurrency(
+                                                            item.acquisition_cost
+                                                        )}
+                                                    </td>
+
+                                                    <td>
+                                                        {formatDate(
+                                                            item.expiry_date
+                                                        )}
+                                                    </td>
+
+                                                    <td>
+                                                        {formatDate(
+                                                            item.received_date
+                                                        )}
+                                                    </td>
+
+                                                    <td>
+                                                        <div className="inventory-status-list">
+                                                            {status.map((entry) => (
+                                                                <span
+                                                                    key={entry.label}
+                                                                    className={`inventory-status ${entry.className}`}
+                                                                >
+                                                                    {entry.label}
+                                                                </span>
+                                                            ))}
                                                         </div>
-                                                    </div>
-                                                </td>
+                                                    </td>
 
-                                                <td>
-                                                    {item.batch_number ||
-                                                        "N/A"}
-                                                </td>
-
-                                                <td>
-                                                    <strong className="inventory-quantity">
-                                                        {
-                                                            item.quantity
-                                                        }
-                                                    </strong>
-                                                </td>
-
-                                                <td>
-                                                    {
-                                                        item.reorder_level
-                                                    }
-                                                </td>
-
-                                                <td>
-                                                    {formatCurrency(
-                                                        item.acquisition_cost
-                                                    )}
-                                                </td>
-
-                                                <td>
-                                                    {formatDate(
-                                                        item.expiry_date
-                                                    )}
-                                                </td>
-
-                                                <td>
-                                                    {formatDate(
-                                                        item.received_date
-                                                    )}
-                                                </td>
-
-                                                <td>
-                                                    <span
-                                                        className={`inventory-status ${status.className}`}
-                                                    >
-                                                        {
-                                                            status.label
-                                                        }
-                                                    </span>
-                                                </td>
-
-                                                <td className="inventory-row-actions-cell">
-                                                    <div className="inventory-row-actions">
-                                                        <button
-                                                            type="button"
-                                                            className="inventory-row-action inventory-row-action-adjust"
-                                                            onClick={() => openInventoryAction("adjustment", item)}
-                                                            disabled={saving || item.batch_status === "disposed"}
-                                                        >
-                                                            Adjust count
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="inventory-row-action inventory-row-action-loss"
-                                                            onClick={() => openInventoryAction(status.label === "Expired" ? "expired-disposal" : "loss", item)}
-                                                            disabled={saving || item.batch_status === "disposed" || Number(item.quantity) <= 0}
-                                                        >
-                                                            {status.label === "Expired" ? "Confirm disposal" : "Record loss"}
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    }
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                                    <td className="inventory-row-actions-cell">
+                                                        <div className="inventory-row-actions">
+                                                            <button
+                                                                type="button"
+                                                                className="inventory-row-action inventory-row-action-adjust"
+                                                                onClick={() => openInventoryAction("adjustment", item)}
+                                                                disabled={saving || item.batch_status === "disposed"}
+                                                            >
+                                                                Adjust count
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="inventory-row-action inventory-row-action-loss"
+                                                                onClick={() => openInventoryAction(status.some((entry) => entry.label === "Expired") ? "expired-disposal" : "loss", item)}
+                                                                disabled={saving || item.batch_status === "disposed" || Number(item.quantity) <= 0}
+                                                            >
+                                                                {status.some((entry) => entry.label === "Expired") ? "Confirm disposal" : "Record loss"}
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
 
                         {inventoryPageCount > 1 && (
                             <nav
@@ -2536,7 +2520,7 @@ function Inventory() {
                                     {" to "}
                                     {Math.min(
                                         currentInventoryPage *
-                                            INVENTORY_PAGE_SIZE,
+                                        INVENTORY_PAGE_SIZE,
                                         filteredInventory.length
                                     )}{" "}
                                     of {filteredInventory.length}
@@ -2580,10 +2564,85 @@ function Inventory() {
             </section>
 
 
+            {expirySettingProduct && (
+                <div
+                    className="inventory-action-backdrop"
+                    role="presentation"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget && !savingProductExpiry) {
+                            setExpirySettingProduct(null);
+                        }
+                    }}
+                >
+                    <section
+                        className="inventory-action-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="product-expiry-title"
+                    >
+                        <header className="inventory-action-header">
+                            <div>
+                                <span className="inventory-action-eyebrow">Product setting</span>
+                                <h2 id="product-expiry-title">Expiry alert threshold</h2>
+                            </div>
+                            <button
+                                type="button"
+                                className="inventory-action-close"
+                                onClick={() => setExpirySettingProduct(null)}
+                                disabled={savingProductExpiry}
+                                aria-label="Close expiry threshold form"
+                            >
+                                <X size={19} />
+                            </button>
+                        </header>
+
+                        <div className="inventory-action-product">
+                            <strong>{expirySettingProduct.product_name}</strong>
+                            <span>Set how many days before expiry this product should be flagged.</span>
+                        </div>
+
+                        <form className="inventory-action-form" onSubmit={saveProductExpirySetting}>
+                            <label className="inventory-action-field">
+                                <span>Alert this many days before expiry</span>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="365"
+                                    step="1"
+                                    value={expirySettingDraft}
+                                    onChange={(event) => setExpirySettingDraft(event.target.value)}
+                                    placeholder={`Default: ${expirySettingProduct.near_expiry_days || nearExpiryDays} days`}
+                                    disabled={savingProductExpiry}
+                                />
+                                <small>Use 1–365 days. Leave blank to inherit the default alert.</small>
+                            </label>
+                            <footer className="inventory-action-footer">
+                                <button
+                                    type="button"
+                                    className="inventory-action-cancel"
+                                    onClick={() => setExpirySettingProduct(null)}
+                                    disabled={savingProductExpiry}
+                                >Cancel</button>
+                                <button
+                                    type="submit"
+                                    className="inventory-action-submit"
+                                    disabled={savingProductExpiry}
+                                >{savingProductExpiry ? "Saving…" : "Save threshold"}</button>
+                            </footer>
+                        </form>
+                    </section>
+                </div>
+            )}
+
             {inventoryAction && (
                 <div
                     className="inventory-action-backdrop"
                     role="presentation"
+                    onKeyDown={(event) => {
+                        if (event.key === "Escape") {
+                            setSelectedMovement(null);
+                        }
+                    }}
                     onMouseDown={(event) => {
                         if (event.target === event.currentTarget) {
                             closeInventoryAction();
@@ -2784,29 +2843,6 @@ function Inventory() {
                                 </button>
                             )}
                         </div>
-
-
-                        <button
-                            type="button"
-                            className="inventory-section-refresh"
-                            onClick={
-                                loadMovements
-                            }
-                            disabled={
-                                movementsLoading
-                            }
-                        >
-                            <RefreshCw
-                                size={16}
-                                className={
-                                    movementsLoading
-                                        ? "inventory-spin"
-                                        : ""
-                                }
-                            />
-
-                            Refresh
-                        </button>
                     </div>
                 </div>
 
@@ -2857,10 +2893,6 @@ function Inventory() {
                                         </th>
 
                                         <th>
-                                            Supplier Invoice / Ref
-                                        </th>
-
-                                        <th>
                                             Quantity
                                         </th>
 
@@ -2876,9 +2908,6 @@ function Inventory() {
                                             Date & Time
                                         </th>
 
-                                        <th>
-                                            Details
-                                        </th>
                                     </tr>
                                 </thead>
 
@@ -2891,6 +2920,17 @@ function Inventory() {
                                                 key={
                                                     movement.movement_id
                                                 }
+                                                className="inventory-movement-row"
+                                                tabIndex={0}
+                                                role="button"
+                                                aria-label={`View ${movement.movement_type} details for ${movement.product_name || "inventory item"}`}
+                                                onClick={() => setSelectedMovement(movement)}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === "Enter" || event.key === " ") {
+                                                        event.preventDefault();
+                                                        setSelectedMovement(movement);
+                                                    }
+                                                }}
                                             >
                                                 <td>
                                                     <span
@@ -2926,10 +2966,6 @@ function Inventory() {
                                                 </td>
 
                                                 <td>
-                                                    {movement.supplier_invoice_number || "—"}
-                                                </td>
-
-                                                <td>
                                                     <strong>
                                                         {
                                                             movement.quantity
@@ -2954,9 +2990,6 @@ function Inventory() {
                                                     )}
                                                 </td>
 
-                                                <td className="inventory-movement-notes">
-                                                    {movement.notes || "N/A"}
-                                                </td>
                                             </tr>
                                         )
                                     )}
@@ -2977,7 +3010,7 @@ function Inventory() {
                                     {" to "}
                                     {Math.min(
                                         currentMovementPage *
-                                            INVENTORY_PAGE_SIZE,
+                                        INVENTORY_PAGE_SIZE,
                                         filteredMovements.length
                                     )}{" "}
                                     of {filteredMovements.length}
@@ -3019,6 +3052,91 @@ function Inventory() {
                     </>
                 )}
             </section>
+
+
+            {selectedMovement && (
+                <div
+                    className="inventory-action-backdrop"
+                    role="presentation"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            setSelectedMovement(null);
+                        }
+                    }}
+                >
+                    <section
+                        className="inventory-action-modal inventory-movement-detail-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="inventory-movement-detail-title"
+                    >
+                        <header className="inventory-action-header">
+                            <div>
+                                <span className="inventory-action-eyebrow">Inventory movement</span>
+                                <h2 id="inventory-movement-detail-title">Movement details</h2>
+                            </div>
+                            <button
+                                type="button"
+                                className="inventory-action-close"
+                                onClick={() => setSelectedMovement(null)}
+                                aria-label="Close movement details"
+                                autoFocus
+                            >
+                                <X size={19} />
+                            </button>
+                        </header>
+
+                        <div className="inventory-movement-detail-summary">
+                            <span className={`inventory-movement-badge ${getMovementClass(selectedMovement.movement_type)}`}>
+                                {selectedMovement.movement_type || "Movement"}
+                            </span>
+                            <strong>{selectedMovement.product_name || "Unknown product"}</strong>
+                            <span>{selectedMovement.barcode || "No barcode"}</span>
+                        </div>
+
+                        <dl className="inventory-movement-detail-grid">
+                            <div>
+                                <dt>Movement ID</dt>
+                                <dd>#{selectedMovement.movement_id}</dd>
+                            </div>
+                            <div>
+                                <dt>Batch</dt>
+                                <dd>{selectedMovement.batch_number || "N/A"}</dd>
+                            </div>
+                            <div>
+                                <dt>Supplier invoice / reference</dt>
+                                <dd>{selectedMovement.supplier_invoice_number || "N/A"}</dd>
+                            </div>
+                            <div>
+                                <dt>Quantity</dt>
+                                <dd>{selectedMovement.quantity ?? "N/A"}</dd>
+                            </div>
+                            <div>
+                                <dt>Reference ID</dt>
+                                <dd>{selectedMovement.reference_id ? `#${selectedMovement.reference_id}` : "N/A"}</dd>
+                            </div>
+                            <div>
+                                <dt>User</dt>
+                                <dd>{selectedMovement.created_by_name || "N/A"}</dd>
+                            </div>
+                            <div>
+                                <dt>Date &amp; time</dt>
+                                <dd>{formatDateTime(selectedMovement.created_at)}</dd>
+                            </div>
+                            {selectedMovement.reason && (
+                                <div>
+                                    <dt>Reason</dt>
+                                    <dd>{selectedMovement.reason}</dd>
+                                </div>
+                            )}
+                            <div className="inventory-movement-detail-notes">
+                                <dt>Details / notes</dt>
+                                <dd>{selectedMovement.notes || "No additional details recorded."}</dd>
+                            </div>
+                        </dl>
+                    </section>
+                </div>
+            )}
         </div>
     );
 }

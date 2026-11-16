@@ -698,6 +698,26 @@ def create_sale():
             )
         )
 
+        item_summary = "; ".join(
+            f"{item['product_name']} x {item['quantity']}"
+            for item in sale_items
+        )
+        cursor.execute(
+            """
+            INSERT INTO activity_logs (user_id, action, description)
+            VALUES (%s, %s, %s)
+            """,
+            (
+                user_id,
+                "SALE_COMPLETED",
+                (
+                    f"Sale #{sale_id} completed by {user['full_name']} "
+                    f"({user['role']}); total ₱{float(total_amount):,.2f}; "
+                    f"payment: {payment_method}; items: {item_summary}"
+                )
+            )
+        )
+
         connection.commit()
 
         return jsonify({

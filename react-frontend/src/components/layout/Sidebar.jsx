@@ -1,7 +1,9 @@
+
 import {
     Boxes,
     ChartNoAxesCombined,
     ClipboardList,
+    Clock3,
     LayoutDashboard,
     LogOut,
     PackageSearch,
@@ -23,7 +25,7 @@ function readStoredUser() {
     }
 }
 
-function Sidebar({ isOpen = false, onNavigate = () => {} }) {
+function Sidebar({ isOpen = false, onNavigate = () => { } }) {
     const user = readStoredUser();
     const currentPath = window.location.pathname;
     const role = user?.role?.toLowerCase();
@@ -32,6 +34,7 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
         { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
         { label: "Products", path: "/products", icon: PackageSearch },
         { label: "Inventory", path: "/inventory", icon: Boxes },
+        { label: "Stock Monitoring", path: "/stock-monitoring", icon: Clock3 },
         { label: "Sales / POS", path: "/sales", icon: ShoppingCart },
         { label: "Reports & Analytics", path: "/reports", icon: ChartNoAxesCombined }
     ];
@@ -51,10 +54,10 @@ function Sidebar({ isOpen = false, onNavigate = () => {} }) {
         role === "admin"
             ? adminNavigation
             : role === "manager"
-              ? managerNavigation
-              : role === "cashier"
-                ? cashierNavigation
-                : [];
+                ? managerNavigation
+                : role === "cashier"
+                    ? cashierNavigation
+                    : [];
 
     const navigate = (path) => {
         onNavigate();
