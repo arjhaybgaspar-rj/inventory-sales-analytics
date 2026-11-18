@@ -1,20 +1,17 @@
-
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../services/product_service.dart';
 import '../../services/owner_inventory_service.dart';
+import '../../theme/app_theme.dart';
 import '../scanner_screen.dart';
 
-const Color ownerPrimaryColor = Color(0xFF2E8B72);
-const Color ownerBackgroundColor = Color(0xFFF3F8F5);
+const Color ownerPrimaryColor = AppColors.primary;
+const Color ownerBackgroundColor = AppColors.canvas;
 
 class OwnerDashboard extends StatefulWidget {
   final Map<String, dynamic> user;
 
-  const OwnerDashboard({
-    super.key,
-    required this.user,
-  });
+  const OwnerDashboard({super.key, required this.user});
 
   @override
   State<OwnerDashboard> createState() => _OwnerDashboardState();
@@ -45,15 +42,16 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
 
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (_) => const _OwnerLoginRedirect(),
-      ),
+      MaterialPageRoute(builder: (_) => const _OwnerLoginRedirect()),
       (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final roleLabel = widget.user['role']?.toString().toLowerCase() == 'manager'
+        ? 'Manager'
+        : 'Owner';
     final pages = [
       OwnerHomeScreen(
         user: widget.user,
@@ -67,18 +65,21 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     ];
 
     const titles = [
-      'Owner Dashboard',
+      'Dashboard',
       'Product Registration',
       'Inventory',
       'Inventory Alerts',
       'Inventory Movements',
       'My Profile',
     ];
+    final pageTitle = _selectedIndex == 0
+        ? '$roleLabel ${titles[_selectedIndex]}'
+        : titles[_selectedIndex];
 
     return Scaffold(
       backgroundColor: ownerBackgroundColor,
       appBar: AppBar(
-        title: Text(titles[_selectedIndex]),
+        title: Text(pageTitle),
         actions: [
           IconButton(
             onPressed: _isLoggingOut ? null : _logout,
@@ -88,7 +89,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                      color: Colors.white,
+                      color: AppColors.forest,
                       strokeWidth: 2,
                     ),
                   )
@@ -96,10 +97,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: pages,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
@@ -142,11 +140,7 @@ class _OwnerLoginRedirect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Text('Please log in again.'),
-      ),
-    );
+    return const Scaffold(body: Center(child: Text('Please log in again.')));
   }
 }
 
@@ -162,10 +156,13 @@ class OwnerHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = user['full_name']?.toString() ?? 'Owner';
+    final roleLabel = user['role']?.toString().toLowerCase() == 'manager'
+        ? 'Manager'
+        : 'Owner';
+    final name = user['full_name']?.toString() ?? roleLabel;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -173,46 +170,88 @@ class OwnerHomeScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              color: ownerPrimaryColor,
-              borderRadius: BorderRadius.circular(18),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppColors.forest, AppColors.deepGreen],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x26314C3B),
+                  blurRadius: 22,
+                  offset: Offset(0, 10),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0x22F7F3EA),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: const Icon(
+                        Icons.storefront_rounded,
+                        color: AppColors.canvas,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Text(
+                        '$roleLabel WORKSPACE',
+                        style: const TextStyle(
+                          color: AppColors.sageLight,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.inventory_2_outlined,
+                      color: AppColors.sage,
+                      size: 21,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
                 const Text(
                   'Welcome back,',
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(color: AppColors.sageLight, fontSize: 14),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   name,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    color: AppColors.canvas,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Row(
-                  children: [
-                    Icon(Icons.storefront, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text(
-                      'Owner Account',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                const Text(
+                  'Your store operations at a glance.',
+                  style: TextStyle(color: AppColors.sageLight, fontSize: 13),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 26),
           const Text(
-            'Inventory Management',
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+            'Inventory management',
+            style: TextStyle(
+              color: AppColors.forest,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 12),
           _OwnerActionCard(
@@ -261,19 +300,34 @@ class _OwnerActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: Colors.white,
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFFE1F2E9),
-          child: Icon(icon, color: ownerPrimaryColor),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        leading: Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: AppColors.sageLight,
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Icon(icon, color: AppColors.forest, size: 22),
         ),
         title: Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: AppColors.ink,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios_rounded,
+          color: AppColors.secondary,
+          size: 16,
+        ),
         onTap: onTap,
       ),
     );
@@ -300,7 +354,6 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
   bool _isLoading = false;
   bool _isSaving = false;
   bool _productReady = false;
-  bool _manualEntry = false;
   bool _loadingProducts = true;
 
   String? _apiSource;
@@ -331,9 +384,7 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
       _loadingProducts = false;
 
       if (result['success'] == true) {
-        _products = List<Map<String, dynamic>>.from(
-          result['products'] ?? [],
-        );
+        _products = List<Map<String, dynamic>>.from(result['products'] ?? []);
       } else {
         _productsError =
             result['message']?.toString() ?? 'Unable to load products.';
@@ -362,9 +413,7 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
   Future<void> _scanBarcode() async {
     final barcode = await Navigator.push<String>(
       context,
-      MaterialPageRoute(
-        builder: (_) => const ScannerScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const ScannerScreen()),
     );
 
     if (!mounted || barcode == null || barcode.isEmpty) return;
@@ -384,7 +433,6 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
     setState(() {
       _isLoading = true;
       _productReady = false;
-      _manualEntry = false;
     });
 
     final result = await _service.lookupBarcode(barcode);
@@ -404,9 +452,15 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
       return;
     }
 
-    final product = Map<String, dynamic>.from(
-      result['product'] ?? {},
-    );
+    if (result['found_in_api'] != true) {
+      _clearProductFields();
+      _showMessage(
+        'Product information was not found for this barcode. Try another barcode.',
+      );
+      return;
+    }
+
+    final product = Map<String, dynamic>.from(result['product'] ?? {});
 
     _nameController.text = product['product_name']?.toString() ?? '';
     _brandController.text = product['brand']?.toString() ?? '';
@@ -417,18 +471,8 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
     _apiSource = product['api_source']?.toString();
     _imageUrl = product['image_url']?.toString();
 
-    setState(() {
-      _productReady = true;
-      _manualEntry = result['found_in_api'] != true;
-    });
-
-    if (_manualEntry) {
-      _showMessage(
-        'Barcode not found in Open Food Facts. Enter the product details manually.',
-      );
-    } else {
-      _showMessage('Product found. Enter its selling price.');
-    }
+    setState(() => _productReady = true);
+    _showMessage('Product found. Enter its selling price.');
   }
 
   void _clearProductFields() {
@@ -446,9 +490,7 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
     if (_barcodeController.text.trim().isEmpty ||
         _nameController.text.trim().isEmpty ||
         _priceController.text.trim().isEmpty) {
-      _showMessage(
-        'Barcode, product name, and selling price are required.',
-      );
+      _showMessage('Barcode, product name, and selling price are required.');
       return;
     }
 
@@ -487,26 +529,28 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget _field(
     String label,
     TextEditingController controller, {
     TextInputType keyboardType = TextInputType.text,
+    bool readOnly = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        readOnly: readOnly,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppColors.white,
         ),
       ),
     );
@@ -522,11 +566,10 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
     final imageUrl = product['image_url']?.toString();
 
     return Card(
-      color: Colors.white,
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 1,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: AppColors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -538,7 +581,7 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
               child: Container(
                 width: 82,
                 height: 90,
-                color: const Color(0xFFEAF4EE),
+                color: AppColors.sageLight,
                 child: imageUrl != null && imageUrl.isNotEmpty
                     ? Image.network(
                         imageUrl,
@@ -575,7 +618,7 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                     Text(
                       brand,
                       style: const TextStyle(
-                        color: Colors.black54,
+                        color: AppColors.muted,
                         fontSize: 12,
                       ),
                     ),
@@ -584,7 +627,7 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                   Text(
                     'Barcode: $barcode',
                     style: const TextStyle(
-                      color: Colors.black54,
+                      color: AppColors.muted,
                       fontSize: 11,
                     ),
                   ),
@@ -592,7 +635,7 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                     Text(
                       category,
                       style: const TextStyle(
-                        color: Colors.black54,
+                        color: AppColors.muted,
                         fontSize: 11,
                       ),
                     ),
@@ -600,7 +643,7 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                     Text(
                       unit,
                       style: const TextStyle(
-                        color: Colors.black54,
+                        color: AppColors.muted,
                         fontSize: 11,
                       ),
                     ),
@@ -633,12 +676,13 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
     if (_productsError != null) {
       return Column(
         children: [
-          const Icon(Icons.cloud_off, size: 42, color: Colors.grey),
-          const SizedBox(height: 8),
-          Text(
-            _productsError!,
-            textAlign: TextAlign.center,
+          const Icon(
+            Icons.cloud_off_outlined,
+            size: 42,
+            color: AppColors.secondary,
           ),
+          const SizedBox(height: 8),
+          Text(_productsError!, textAlign: TextAlign.center),
           const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: _loadProducts,
@@ -660,14 +704,14 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
               const Icon(
                 Icons.inventory_2_outlined,
                 size: 48,
-                color: Colors.grey,
+                color: AppColors.secondary,
               ),
               const SizedBox(height: 10),
               Text(
                 _products.isEmpty
                     ? 'No registered products yet.'
                     : 'No products match your search.',
-                style: const TextStyle(color: Colors.black54),
+                style: const TextStyle(color: AppColors.muted),
               ),
             ],
           ),
@@ -675,9 +719,7 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
       );
     }
 
-    return Column(
-      children: products.map(_buildProductCard).toList(),
-    );
+    return Column(children: products.map(_buildProductCard).toList());
   }
 
   @override
@@ -706,9 +748,9 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE1EDE5)),
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -717,15 +759,16 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                     children: [
                       Icon(
                         Icons.qr_code_scanner,
-                        color: ownerPrimaryColor,
+                        color: AppColors.forest,
                         size: 25,
                       ),
                       SizedBox(width: 9),
                       Text(
                         'Add New Product',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          color: AppColors.forest,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
@@ -733,7 +776,7 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                   const SizedBox(height: 8),
                   const Text(
                     'Scan a barcode or enter it manually to register a product.',
-                    style: TextStyle(color: Colors.black54),
+                    style: TextStyle(color: AppColors.muted),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -755,7 +798,7 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                         icon: const Icon(Icons.qr_code_scanner),
                         style: IconButton.styleFrom(
                           backgroundColor: ownerPrimaryColor,
-                          foregroundColor: Colors.white,
+                          foregroundColor: AppColors.canvas,
                           minimumSize: const Size(52, 52),
                         ),
                       ),
@@ -770,14 +813,14 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                             width: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: AppColors.white,
                             ),
                           )
                         : const Icon(Icons.search),
-                    label: const Text('LOOK UP BARCODE'),
+                    label: const Text('Look up barcode'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ownerPrimaryColor,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.canvas,
                       minimumSize: const Size.fromHeight(48),
                     ),
                   ),
@@ -787,19 +830,18 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
             if (_productReady) ...[
               const SizedBox(height: 16),
               Card(
-                color: Colors.white,
+                color: AppColors.white,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        _manualEntry
-                            ? 'Enter Product Details'
-                            : 'Product Details',
-                        style: const TextStyle(
+                      const Text(
+                        'Product Details',
+                        style: TextStyle(
+                          color: AppColors.forest,
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       if (_imageUrl != null && _imageUrl!.isNotEmpty) ...[
@@ -810,30 +852,30 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                             height: 120,
                             errorBuilder: (context, error, stackTrace) {
                               return const Icon(
-                                Icons.inventory_2,
+                                Icons.inventory_2_outlined,
                                 size: 65,
+                                color: AppColors.secondary,
                               );
                             },
                           ),
                         ),
                       ],
                       const SizedBox(height: 14),
-                      _field('Product Name', _nameController),
-                      _field('Brand', _brandController),
-                      _field('Category', _categoryController),
-                      _field('Unit / Size', _unitController),
+                      _field('Product Name', _nameController, readOnly: true),
+                      _field('Brand', _brandController, readOnly: true),
+                      _field('Category', _categoryController, readOnly: true),
+                      _field('Unit / Size', _unitController, readOnly: true),
                       _field(
                         'Selling Price (₱)',
                         _priceController,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(
+                        keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
                       ),
                       if (_apiSource != null && _apiSource!.isNotEmpty)
                         Text(
                           'Source: $_apiSource',
-                          style: const TextStyle(color: Colors.grey),
+                          style: const TextStyle(color: AppColors.muted),
                         ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
@@ -843,15 +885,15 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                                 height: 18,
                                 width: 18,
                                 child: CircularProgressIndicator(
-                                  color: Colors.white,
+                                  color: AppColors.white,
                                   strokeWidth: 2,
                                 ),
                               )
                             : const Icon(Icons.save),
-                        label: const Text('SAVE PRODUCT'),
+                        label: const Text('Save product'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: ownerPrimaryColor,
-                          foregroundColor: Colors.white,
+                          foregroundColor: AppColors.canvas,
                           minimumSize: const Size.fromHeight(48),
                         ),
                       ),
@@ -867,8 +909,9 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                 const Text(
                   'Registered Products',
                   style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
+                    color: AppColors.forest,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 Container(
@@ -877,14 +920,14 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE1F2E9),
+                    color: AppColors.sageLight,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     '${_products.length} Products',
                     style: const TextStyle(
-                      color: ownerPrimaryColor,
-                      fontWeight: FontWeight.bold,
+                      color: AppColors.forest,
+                      fontWeight: FontWeight.w700,
                       fontSize: 12,
                     ),
                   ),
@@ -911,7 +954,7 @@ class _OwnerProductScreenState extends State<OwnerProductScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppColors.white,
               ),
             ),
             const SizedBox(height: 14),
@@ -960,12 +1003,9 @@ class _OwnerInventoryScreenState extends State<OwnerInventoryScreen> {
       _loading = false;
 
       if (result['success'] == true) {
-        _inventory = List<Map<String, dynamic>>.from(
-          result['inventory'] ?? [],
-        );
+        _inventory = List<Map<String, dynamic>>.from(result['inventory'] ?? []);
       } else {
-        _error =
-            result['message']?.toString() ?? 'Unable to load inventory.';
+        _error = result['message']?.toString() ?? 'Unable to load inventory.';
       }
     });
   }
@@ -1003,55 +1043,103 @@ class _OwnerInventoryScreenState extends State<OwnerInventoryScreen> {
     }
 
     if (_error != null) {
-      return _ErrorView(
-        message: _error!,
-        onRetry: _loadInventory,
-      );
+      return _ErrorView(message: _error!, onRetry: _loadInventory);
     }
 
     return RefreshIndicator(
       onRefresh: _loadInventory,
       child: _inventory.isEmpty
           ? ListView(
+              padding: const EdgeInsets.all(24),
               children: const [
-                SizedBox(height: 180),
-                Center(child: Text('No inventory records found.')),
+                SizedBox(height: 120),
+                Icon(
+                  Icons.inventory_2_outlined,
+                  size: 48,
+                  color: AppColors.secondary,
+                ),
+                SizedBox(height: 14),
+                Center(
+                  child: Text(
+                    'No inventory records found.',
+                    style: TextStyle(color: AppColors.muted),
+                  ),
+                ),
               ],
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _inventory.length,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+              itemCount: _inventory.length + 1,
               itemBuilder: (context, index) {
-                final item = _inventory[index];
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Inventory overview',
+                            style: TextStyle(
+                              color: AppColors.forest,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.sageLight,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${_inventory.length} items',
+                            style: const TextStyle(
+                              color: AppColors.forest,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-                final name =
-                    item['product_name']?.toString() ?? 'Product';
+                final item = _inventory[index - 1];
+
+                final name = item['product_name']?.toString() ?? 'Product';
                 final quantity = item['quantity']?.toString() ?? '0';
                 final unit = item['unit']?.toString() ?? '';
                 final batch = item['batch_number']?.toString() ?? 'N/A';
                 final expiry = item['expiry_date']?.toString() ?? 'N/A';
                 final reorderLevel =
                     int.tryParse(item['reorder_level']?.toString() ?? '') ?? 0;
-                final currentQuantity =
-                    int.tryParse(quantity) ?? 0;
+                final currentQuantity = int.tryParse(quantity) ?? 0;
 
                 final isLow = currentQuantity <= reorderLevel;
 
                 return Card(
-                  color: Colors.white,
                   margin: const EdgeInsets.only(bottom: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
                             const CircleAvatar(
-                              backgroundColor: Color(0xFFE1F2E9),
+                              backgroundColor: AppColors.sageLight,
                               child: Icon(
                                 Icons.inventory_2_outlined,
-                                color: ownerPrimaryColor,
+                                color: AppColors.forest,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -1059,8 +1147,9 @@ class _OwnerInventoryScreenState extends State<OwnerInventoryScreen> {
                               child: Text(
                                 name,
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                                  color: AppColors.forest,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
                                 ),
                               ),
                             ),
@@ -1071,37 +1160,54 @@ class _OwnerInventoryScreenState extends State<OwnerInventoryScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: isLow
-                                    ? const Color(0xFFFFE9DF)
-                                    : const Color(0xFFE1F2E9),
+                                    ? AppColors.cream
+                                    : AppColors.sageLight,
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
                                 isLow ? 'Low Stock' : 'In Stock',
                                 style: TextStyle(
                                   color: isLow
-                                      ? Colors.deepOrange
-                                      : ownerPrimaryColor,
+                                      ? AppColors.error
+                                      : AppColors.forest,
                                   fontSize: 11,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        Text('Quantity: $quantity $unit'),
-                        Text('Batch: $batch'),
-                        Text('Expiry: $expiry'),
-                        Text('Reorder Level: $reorderLevel'),
+                        const SizedBox(height: 14),
+                        Text(
+                          '$quantity $unit in stock',
+                          style: const TextStyle(
+                            color: AppColors.forest,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _InventoryDetail(label: 'Batch', value: batch),
+                            _InventoryDetail(label: 'Expiry', value: expiry),
+                            _InventoryDetail(
+                              label: 'Reorder at',
+                              value: '$reorderLevel',
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 10),
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
                             onPressed: () => _openStockIn(item),
                             icon: const Icon(Icons.add_box_outlined),
-                            label: const Text('STOCK IN'),
+                            label: const Text('Stock in'),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: ownerPrimaryColor,
+                              foregroundColor: AppColors.forest,
                             ),
                           ),
                         ),
@@ -1193,9 +1299,7 @@ class _OwnerStockInScreenState extends State<OwnerStockInScreen> {
       Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Stock-in failed.'),
-        ),
+        SnackBar(content: Text(result['message'] ?? 'Stock-in failed.')),
       );
     }
   }
@@ -1212,18 +1316,19 @@ class _OwnerStockInScreenState extends State<OwnerStockInScreen> {
         keyboardType: TextInputType.numberWithOptions(decimal: decimal),
         decoration: InputDecoration(
           labelText: label,
-          border: const OutlineInputBorder(),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.border),
+          ),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppColors.white,
         ),
         validator: (value) {
           if (value == null || value.trim().isEmpty) {
             return 'This field is required.';
           }
 
-          final parsed = decimal
-              ? double.tryParse(value)
-              : int.tryParse(value);
+          final parsed = decimal ? double.tryParse(value) : int.tryParse(value);
 
           if (parsed == null || parsed <= 0) {
             return 'Enter a valid value greater than zero.';
@@ -1257,31 +1362,37 @@ class _OwnerStockInScreenState extends State<OwnerStockInScreen> {
             Text(
               widget.productName,
               style: const TextStyle(
+                color: AppColors.forest,
                 fontSize: 20,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 20),
             _input('Batch Number', _batchController),
             _input('Quantity', _quantityController),
-            _input(
-              'Acquisition Cost (₱)',
-              _costController,
-              decimal: true,
-            ),
+            _input('Acquisition Cost (₱)', _costController, decimal: true),
             _input('Reorder Level', _reorderController),
             Card(
-              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: AppColors.border),
+              ),
               child: ListTile(
                 title: const Text('Received Date'),
                 subtitle: Text(_date(_receivedDate)),
-                trailing: const Icon(Icons.calendar_month),
+                trailing: const Icon(
+                  Icons.calendar_month_outlined,
+                  color: AppColors.secondary,
+                ),
                 onTap: () => _pickDate(expiry: false),
               ),
             ),
             const SizedBox(height: 10),
             Card(
-              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: AppColors.border),
+              ),
               child: ListTile(
                 title: const Text('Expiry Date'),
                 subtitle: Text(
@@ -1295,7 +1406,10 @@ class _OwnerStockInScreenState extends State<OwnerStockInScreen> {
                         onPressed: () => setState(() => _expiryDate = null),
                         icon: const Icon(Icons.close),
                       ),
-                    const Icon(Icons.calendar_month),
+                    const Icon(
+                      Icons.calendar_month_outlined,
+                      color: AppColors.secondary,
+                    ),
                   ],
                 ),
                 onTap: () => _pickDate(expiry: true),
@@ -1305,13 +1419,13 @@ class _OwnerStockInScreenState extends State<OwnerStockInScreen> {
             ElevatedButton(
               onPressed: _saving ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: ownerPrimaryColor,
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.forest,
+                foregroundColor: AppColors.white,
                 minimumSize: const Size.fromHeight(50),
               ),
               child: _saving
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('CONFIRM STOCK IN'),
+                  ? const CircularProgressIndicator(color: AppColors.white)
+                  : const Text('Confirm stock in'),
             ),
           ],
         ),
@@ -1354,9 +1468,7 @@ class _OwnerAlertsScreenState extends State<OwnerAlertsScreen> {
       _loading = false;
 
       if (result['success'] == true) {
-        _alerts = List<Map<String, dynamic>>.from(
-          result['alerts'] ?? [],
-        );
+        _alerts = List<Map<String, dynamic>>.from(result['alerts'] ?? []);
       } else {
         _error = result['message']?.toString() ?? 'Unable to load alerts.';
       }
@@ -1383,47 +1495,71 @@ class _OwnerAlertsScreenState extends State<OwnerAlertsScreen> {
       onRefresh: _load,
       child: _alerts.isEmpty
           ? ListView(
+              padding: const EdgeInsets.all(20),
               children: const [
-                SizedBox(height: 180),
-                Center(child: Text('No inventory alerts.')),
+                SizedBox(height: 110),
+                _OwnerEmptyState(
+                  icon: Icons.notifications_none_outlined,
+                  title: 'No inventory alerts',
+                  message: 'New stock warnings will appear here.',
+                ),
               ],
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _alerts.length,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+              itemCount: _alerts.length + 1,
               itemBuilder: (context, index) {
-                final alert = _alerts[index];
+                if (index == 0) {
+                  return _OwnerSectionHeader(
+                    title: 'Needs attention',
+                    count: _alerts.length,
+                  );
+                }
 
-                final name = alert['product_name']?.toString() ??
+                final alert = _alerts[index - 1];
+
+                final name =
+                    alert['product_name']?.toString() ??
                     alert['name']?.toString() ??
                     'Product';
 
-                final type = alert['alert_type']?.toString() ??
+                final type =
+                    alert['alert_type']?.toString() ??
                     alert['type']?.toString() ??
                     alert['status']?.toString() ??
                     'Inventory Alert';
 
                 return Card(
-                  color: Colors.white,
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Color(0xFFFFF0DF),
-                      child: Icon(
-                        Icons.warning_amber_rounded,
-                        color: Colors.deepOrange,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const CircleAvatar(
+                        backgroundColor: AppColors.cream,
+                        child: Icon(
+                          Icons.warning_amber_rounded,
+                          color: AppColors.error,
+                        ),
                       ),
+                      title: Text(
+                        name,
+                        style: const TextStyle(
+                          color: AppColors.forest,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '$type\n'
+                        'Quantity: ${alert['quantity'] ?? alert['current_stock'] ?? 'N/A'}\n'
+                        'Expiry: ${alert['expiry_date'] ?? 'N/A'}',
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          height: 1.5,
+                        ),
+                      ),
+                      isThreeLine: true,
                     ),
-                    title: Text(
-                      name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      '$type\n'
-                      'Quantity: ${alert['quantity'] ?? alert['current_stock'] ?? 'N/A'}\n'
-                      'Expiry: ${alert['expiry_date'] ?? 'N/A'}',
-                    ),
-                    isThreeLine: true,
                   ),
                 );
               },
@@ -1466,11 +1602,10 @@ class _OwnerMovementsScreenState extends State<OwnerMovementsScreen> {
       _loading = false;
 
       if (result['success'] == true) {
-        _movements = List<Map<String, dynamic>>.from(
-          result['movements'] ?? [],
-        );
+        _movements = List<Map<String, dynamic>>.from(result['movements'] ?? []);
       } else {
-        _error = result['message']?.toString() ??
+        _error =
+            result['message']?.toString() ??
             'Unable to load inventory movements.';
       }
     });
@@ -1496,54 +1631,87 @@ class _OwnerMovementsScreenState extends State<OwnerMovementsScreen> {
       onRefresh: _load,
       child: _movements.isEmpty
           ? ListView(
+              padding: const EdgeInsets.all(20),
               children: const [
-                SizedBox(height: 180),
-                Center(child: Text('No inventory movements found.')),
+                SizedBox(height: 110),
+                _OwnerEmptyState(
+                  icon: Icons.swap_horiz_rounded,
+                  title: 'No inventory movements',
+                  message: 'Stock activity will be recorded here.',
+                ),
               ],
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _movements.length,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+              itemCount: _movements.length + 1,
               itemBuilder: (context, index) {
-                final movement = _movements[index];
+                if (index == 0) {
+                  return _OwnerSectionHeader(
+                    title: 'Recent activity',
+                    count: _movements.length,
+                  );
+                }
 
-                final name = movement['product_name']?.toString() ??
+                final movement = _movements[index - 1];
+
+                final name =
+                    movement['product_name']?.toString() ??
                     movement['name']?.toString() ??
                     'Product';
 
-                final type = movement['movement_type']?.toString() ??
+                final type =
+                    movement['movement_type']?.toString() ??
                     movement['movement']?.toString() ??
                     movement['type']?.toString() ??
                     'Movement';
 
-                final quantity = movement['quantity']?.toString() ??
+                final quantity =
+                    movement['quantity']?.toString() ??
                     movement['quantity_changed']?.toString() ??
                     'N/A';
 
-                final date = movement['created_at']?.toString() ??
+                final date =
+                    movement['created_at']?.toString() ??
                     movement['movement_date']?.toString() ??
                     movement['date']?.toString() ??
                     'N/A';
 
                 return Card(
-                  color: Colors.white,
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: Color(0xFFE1F2E9),
-                      child: Icon(
-                        Icons.swap_horiz,
-                        color: ownerPrimaryColor,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const CircleAvatar(
+                        backgroundColor: AppColors.sageLight,
+                        child: Icon(
+                          Icons.swap_horiz_rounded,
+                          color: AppColors.forest,
+                        ),
+                      ),
+                      title: Text(
+                        name,
+                        style: const TextStyle(
+                          color: AppColors.forest,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _InventoryDetail(label: 'Type', value: type),
+                            _InventoryDetail(
+                              label: 'Quantity',
+                              value: quantity,
+                            ),
+                            _InventoryDetail(label: 'Date', value: date),
+                          ],
+                        ),
                       ),
                     ),
-                    title: Text(
-                      name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      'Type: $type\nQuantity: $quantity\nDate: $date',
-                    ),
-                    isThreeLine: true,
                   ),
                 );
               },
@@ -1555,53 +1723,91 @@ class _OwnerMovementsScreenState extends State<OwnerMovementsScreen> {
 class OwnerProfileScreen extends StatelessWidget {
   final Map<String, dynamic> user;
 
-  const OwnerProfileScreen({
-    super.key,
-    required this.user,
-  });
+  const OwnerProfileScreen({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
+    final roleLabel = user['role']?.toString().toLowerCase() == 'manager'
+        ? 'Manager'
+        : 'Owner';
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       child: Card(
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              const CircleAvatar(
-                radius: 42,
-                backgroundColor: Color(0xFFE1F2E9),
-                child: Icon(
-                  Icons.person,
-                  size: 45,
-                  color: ownerPrimaryColor,
-                ),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 28, 20, 22),
+              decoration: const BoxDecoration(
+                color: AppColors.sageLight,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
               ),
-              const SizedBox(height: 16),
-              Text(
-                user['full_name']?.toString() ?? 'Owner',
-                style: const TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Column(
+                children: [
+                  const CircleAvatar(
+                    radius: 40,
+                    backgroundColor: AppColors.white,
+                    child: Icon(
+                      Icons.person_outline_rounded,
+                      size: 42,
+                      color: AppColors.forest,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    user['full_name']?.toString() ?? roleLabel,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.forest,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      roleLabel,
+                      style: const TextStyle(
+                        color: AppColors.forest,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 18),
-              _OwnerProfileInfo(
-                label: 'Username',
-                value: user['username']?.toString() ?? '',
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+              child: Column(
+                children: [
+                  _OwnerProfileInfo(
+                    icon: Icons.alternate_email_rounded,
+                    label: 'Username',
+                    value: user['username']?.toString() ?? '',
+                  ),
+                  _OwnerProfileInfo(
+                    icon: Icons.badge_outlined,
+                    label: 'Role',
+                    value: user['role']?.toString() ?? roleLabel.toLowerCase(),
+                  ),
+                  _OwnerProfileInfo(
+                    icon: Icons.verified_user_outlined,
+                    label: 'Account Status',
+                    value: user['status']?.toString() ?? 'active',
+                  ),
+                ],
               ),
-              _OwnerProfileInfo(
-                label: 'Role',
-                value: user['role']?.toString() ?? 'owner',
-              ),
-              _OwnerProfileInfo(
-                label: 'Account Status',
-                value: user['status']?.toString() ?? 'active',
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1609,10 +1815,12 @@ class OwnerProfileScreen extends StatelessWidget {
 }
 
 class _OwnerProfileInfo extends StatelessWidget {
+  final IconData icon;
   final String label;
   final String value;
 
   const _OwnerProfileInfo({
+    required this.icon,
     required this.label,
     required this.value,
   });
@@ -1620,13 +1828,116 @@ class _OwnerProfileInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      title: Text(label, style: const TextStyle(color: Colors.grey)),
+      leading: Icon(icon, color: AppColors.secondary),
+      title: Text(label, style: const TextStyle(color: AppColors.muted)),
       subtitle: Text(
         value,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+class _OwnerSectionHeader extends StatelessWidget {
+  final String title;
+  final int count;
+
+  const _OwnerSectionHeader({required this.title, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: AppColors.forest,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: AppColors.sageLight,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '$count ${count == 1 ? 'item' : 'items'}',
+              style: const TextStyle(
+                color: AppColors.forest,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OwnerEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+
+  const _OwnerEmptyState({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, size: 48, color: AppColors.secondary),
+        const SizedBox(height: 12),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppColors.forest,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
         ),
+        const SizedBox(height: 6),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.muted),
+        ),
+      ],
+    );
+  }
+}
+
+class _InventoryDetail extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InventoryDetail({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 250),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.canvas,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        '$label: $value',
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(color: AppColors.muted, fontSize: 12),
       ),
     );
   }
@@ -1636,10 +1947,7 @@ class _ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _ErrorView({
-    required this.message,
-    required this.onRetry,
-  });
+  const _ErrorView({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -1649,7 +1957,11 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off, size: 50, color: Colors.grey),
+            const Icon(
+              Icons.cloud_off_outlined,
+              size: 50,
+              color: AppColors.secondary,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 14),

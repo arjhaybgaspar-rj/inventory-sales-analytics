@@ -1,21 +1,17 @@
-
-import 'dart:convert';
+﻿import 'dart:convert';
+import '../config/api_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'http_client_factory.dart';
 import 'session_cookie_store.dart';
 
 class OwnerInventoryService {
-  static const String baseUrl = kIsWeb
-      ? 'http://localhost:5000'
-      : 'http://192.168.100.108:5000';
+  static String get baseUrl => ApiConfig.baseUrl;
 
   late final http.Client _client = createHttpClient();
 
   Map<String, String> get _headers {
-    final headers = {
-      'Content-Type': 'application/json',
-    };
+    final headers = {'Content-Type': 'application/json'};
 
     if (!kIsWeb && SessionCookieStore.cookie != null) {
       headers['Cookie'] = SessionCookieStore.cookie!;
@@ -31,10 +27,7 @@ class OwnerInventoryService {
       return decoded;
     }
 
-    return {
-      'success': false,
-      'message': 'Invalid server response.',
-    };
+    return {'success': false, 'message': 'Invalid server response.'};
   }
 
   Future<Map<String, dynamic>> getInventory() async {

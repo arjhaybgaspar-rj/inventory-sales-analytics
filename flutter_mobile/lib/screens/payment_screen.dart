@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
 import '../services/sales_service.dart';
+import '../theme/app_theme.dart';
 
-const Color primaryColor = Color(0xFF2E8B72);
+const Color primaryColor = AppColors.primary;
 
 class PaymentScreen extends StatefulWidget {
   final List<Map<String, dynamic>> cart;
@@ -38,6 +38,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return {
         'product_id': item['product_id'],
         'quantity': item['quantity'],
+        'batch_id': item['selected_batch_id'],
+        'batch_override_reason': item['batch_override_reason'] ?? '',
       };
     }).toList();
 
@@ -53,10 +55,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (result['success'] != true) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            result['message'] ?? 'Unable to complete payment.',
-          ),
-          backgroundColor: Colors.red.shade700,
+          content: Text(result['message'] ?? 'Unable to complete payment.'),
+          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -81,9 +81,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             children: [
               CircleAvatar(
                 radius: 28,
-                backgroundColor: Color(0xFFE1F2E9),
+                backgroundColor: AppColors.sageLight,
                 child: Icon(
-                  Icons.check_circle,
+                  Icons.check_circle_rounded,
                   color: primaryColor,
                   size: 38,
                 ),
@@ -104,10 +104,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Divider(),
-                  _receiptRow(
-                    'Sale ID',
-                    '#${sale['sale_id'] ?? 'N/A'}',
-                  ),
+                  _receiptRow('Sale ID', '#${sale['sale_id'] ?? 'N/A'}'),
                   _receiptRow(
                     'Cashier',
                     sale['cashier']?.toString() ?? 'Cashier',
@@ -133,22 +130,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           Text(
                             item['product_name']?.toString() ??
                                 'Unknown Product',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                           Text(
                             '${item['quantity']} × ${_formatAmount(item['unit_price'])}',
                             style: const TextStyle(
-                              color: Colors.grey,
+                              color: AppColors.muted,
                               fontSize: 12,
                             ),
                           ),
                           Text(
                             _formatAmount(item['subtotal']),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -184,7 +177,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.canvas,
                 ),
                 child: const Text('DONE'),
               ),
@@ -199,11 +192,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     Navigator.pop(context, true);
   }
 
-  Widget _receiptRow(
-    String label,
-    String value, {
-    bool bold = false,
-  }) {
+  Widget _receiptRow(String label, String value, {bool bold = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
@@ -221,7 +210,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               textAlign: TextAlign.end,
               style: TextStyle(
                 fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-                color: bold ? primaryColor : Colors.black87,
+                color: bold ? primaryColor : AppColors.ink,
               ),
             ),
           ),
@@ -239,9 +228,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Payment'),
-      ),
+      appBar: AppBar(title: const Text('Payment')),
       body: SafeArea(
         child: Column(
           children: [
@@ -260,7 +247,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ),
                     const SizedBox(height: 12),
                     Card(
-                      color: Colors.white,
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
@@ -268,11 +254,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             ...widget.cart.map((item) {
                               final name =
                                   item['product_name']?.toString() ??
-                                      'Unknown Product';
+                                  'Unknown Product';
                               final quantity =
-                                  int.tryParse(
-                                    item['quantity'].toString(),
-                                  ) ??
+                                  int.tryParse(item['quantity'].toString()) ??
                                   0;
                               final price =
                                   double.tryParse(
@@ -301,7 +285,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                           Text(
                                             '$quantity × ${_formatAmount(price)}',
                                             style: const TextStyle(
-                                              color: Colors.grey,
+                                              color: AppColors.muted,
                                               fontSize: 12,
                                             ),
                                           ),
@@ -320,8 +304,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             }),
                             const Divider(),
                             Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Text(
                                   'Total Amount',
@@ -333,7 +316,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 Text(
                                   _formatAmount(widget.totalAmount),
                                   style: const TextStyle(
-                                    color: primaryColor,
+                                    color: AppColors.forest,
                                     fontSize: 21,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -389,11 +372,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  top: BorderSide(color: Color(0xFFE0E0E0)),
-                ),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                border: Border(top: BorderSide(color: AppColors.border)),
               ),
               child: SizedBox(
                 height: 52,
@@ -401,22 +382,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   onPressed: _isProcessing ? null : _confirmPayment,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColors.canvas,
                   ),
                   child: _isProcessing
                       ? const SizedBox(
                           height: 23,
                           width: 23,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: AppColors.canvas,
                             strokeWidth: 2,
                           ),
                         )
                       : const Text(
                           'CONFIRM PAYMENT',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                 ),
               ),
@@ -436,23 +415,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final selected = _paymentMethod == value;
 
     return Card(
-      color: selected ? const Color(0xFFE8F4EE) : Colors.white,
-      elevation: selected ? 2 : 0,
+      color: selected ? AppColors.sageLight : AppColors.white,
+      elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: selected ? primaryColor : Colors.grey.shade300,
+          color: selected ? AppColors.secondary : AppColors.border,
         ),
       ),
       child: RadioListTile<String>(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
         value: value,
         activeColor: primaryColor,
-        secondary: Icon(icon, color: primaryColor, size: 28),
+        secondary: Icon(icon, color: AppColors.deepGreen, size: 25),
         title: Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: AppColors.forest,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        subtitle: Text(subtitle),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+        ),
       ),
     );
   }

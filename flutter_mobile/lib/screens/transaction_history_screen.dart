@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
 import '../services/sales_service.dart';
+import '../theme/app_theme.dart';
 
-const Color primaryColor = Color(0xFF2E8B72);
+const Color primaryColor = AppColors.primary;
 
 class TransactionHistoryScreen extends StatefulWidget {
   const TransactionHistoryScreen({super.key});
@@ -12,8 +12,7 @@ class TransactionHistoryScreen extends StatefulWidget {
       _TransactionHistoryScreenState();
 }
 
-class _TransactionHistoryScreenState
-    extends State<TransactionHistoryScreen> {
+class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   final SalesService _salesService = SalesService();
 
   List<Map<String, dynamic>> _sales = [];
@@ -92,22 +91,33 @@ class _TransactionHistoryScreenState
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(18, 18, 12, 10),
           child: Row(
             children: [
               const Expanded(
-                child: Text(
-                  'Completed Transactions',
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Completed transactions',
+                      style: TextStyle(
+                        color: AppColors.forest,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Select a sale to view its receipt',
+                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                    ),
+                  ],
                 ),
               ),
-              IconButton(
+              IconButton.filledTonal(
                 onPressed: _isLoading ? null : _loadSales,
-                icon: const Icon(Icons.refresh),
-                tooltip: 'Refresh',
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: 'Refresh transactions',
               ),
             ],
           ),
@@ -115,132 +125,181 @@ class _TransactionHistoryScreenState
         Expanded(
           child: _isLoading
               ? const Center(
-                  child: CircularProgressIndicator(
-                    color: primaryColor,
-                  ),
+                  child: CircularProgressIndicator(color: primaryColor),
                 )
               : _errorMessage != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.cloud_off,
-                              size: 55,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _errorMessage!,
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: _loadSales,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Try Again'),
-                            ),
-                          ],
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.cloud_off_outlined,
+                          size: 52,
+                          color: AppColors.secondary,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.muted),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _loadSales,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Try again'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : _sales.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.receipt_long_outlined,
+                        size: 58,
+                        color: AppColors.secondary,
+                      ),
+                      SizedBox(height: 15),
+                      Text(
+                        'No transactions yet',
+                        style: TextStyle(
+                          color: AppColors.forest,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                    )
-                  : _sales.isEmpty
-                      ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.receipt_long_outlined,
-                                size: 65,
-                                color: Colors.grey,
-                              ),
-                              SizedBox(height: 15),
-                              Text(
-                                'No transactions found.',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _loadSales,
-                          child: ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(
-                              16,
-                              4,
-                              16,
-                              20,
-                            ),
-                            itemCount: _sales.length,
-                            itemBuilder: (context, index) {
-                              final sale = _sales[index];
+                      SizedBox(height: 6),
+                      Text(
+                        'Completed sales will appear here.',
+                        style: TextStyle(color: AppColors.muted),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadSales,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                    itemCount: _sales.length,
+                    itemBuilder: (context, index) {
+                      final sale = _sales[index];
 
-                              final saleId = sale['sale_id'];
-                              final cashier =
-                                  sale['full_name'] ?? 'Unknown Cashier';
-                              final paymentMethod =
-                                  sale['payment_method'] ?? 'N/A';
+                      final saleId = sale['sale_id'];
+                      final cashier = sale['full_name'] ?? 'Unknown Cashier';
+                      final paymentMethod = sale['payment_method'] ?? 'N/A';
 
-                              return Card(
-                                color: Colors.white,
-                                margin: const EdgeInsets.only(bottom: 12),
-                                child: ListTile(
-                                  contentPadding: const EdgeInsets.all(16),
-                                  leading: const CircleAvatar(
-                                    backgroundColor: Color(0xFFE1F2E9),
-                                    child: Icon(
-                                      Icons.receipt_long,
-                                      color: primaryColor,
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(18),
+                          onTap: () => _openDetails(sale),
+                          child: Padding(
+                            padding: const EdgeInsets.all(15),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.sageLight,
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: const Icon(
+                                        Icons.receipt_long_rounded,
+                                        color: AppColors.forest,
+                                        size: 21,
+                                      ),
                                     ),
-                                  ),
-                                  title: Text(
-                                    'Transaction #$saleId',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  subtitle: Padding(
-                                    padding: const EdgeInsets.only(top: 8),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Cashier: $cashier'),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Date: ${_formatDate(sale['sale_date'])}',
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Payment: ${paymentMethod.toString().toUpperCase()}',
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          _formatAmount(sale['total_amount']),
-                                          style: const TextStyle(
-                                            color: primaryColor,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 17,
+                                    const SizedBox(width: 11),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Transaction #$saleId',
+                                            style: const TextStyle(
+                                              color: AppColors.forest,
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            cashier.toString(),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              color: AppColors.muted,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  trailing: const Icon(
-                                    Icons.chevron_right,
-                                    color: primaryColor,
-                                  ),
-                                  onTap: () => _openDetails(sale),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      _formatAmount(sale['total_amount']),
+                                      style: const TextStyle(
+                                        color: AppColors.forest,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              );
-                            },
+                                const Divider(height: 22),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.schedule_rounded,
+                                      size: 15,
+                                      color: AppColors.secondary,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Expanded(
+                                      child: Text(
+                                        _formatDate(sale['sale_date']),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: AppColors.muted,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Icon(
+                                      Icons.payments_outlined,
+                                      size: 15,
+                                      color: AppColors.secondary,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      paymentMethod.toString().toUpperCase(),
+                                      style: const TextStyle(
+                                        color: AppColors.deepGreen,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
+                      );
+                    },
+                  ),
+                ),
         ),
       ],
     );
@@ -250,18 +309,14 @@ class _TransactionHistoryScreenState
 class TransactionDetailsScreen extends StatefulWidget {
   final int saleId;
 
-  const TransactionDetailsScreen({
-    super.key,
-    required this.saleId,
-  });
+  const TransactionDetailsScreen({super.key, required this.saleId});
 
   @override
   State<TransactionDetailsScreen> createState() =>
       _TransactionDetailsScreenState();
 }
 
-class _TransactionDetailsScreenState
-    extends State<TransactionDetailsScreen> {
+class _TransactionDetailsScreenState extends State<TransactionDetailsScreen> {
   final SalesService _salesService = SalesService();
 
   Map<String, dynamic>? _sale;
@@ -329,50 +384,46 @@ class _TransactionDetailsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F8F5),
-      appBar: AppBar(
-        title: Text('Transaction #${widget.saleId}'),
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-      ),
+      backgroundColor: AppColors.canvas,
+      appBar: AppBar(title: Text('Transaction #${widget.saleId}')),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: primaryColor,
+          ? const Center(child: CircularProgressIndicator(color: primaryColor))
+          : _errorMessage != null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 55,
+                      color: AppColors.error,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.muted),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _loadDetails,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Try Again'),
+                    ),
+                  ],
+                ),
               ),
             )
-          : _errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 55,
-                          color: Colors.red,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _errorMessage!,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: _loadDetails,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Try Again'),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : _sale == null
-                  ? const Center(
-                      child: Text('Transaction not found.'),
-                    )
-                  : _buildReceipt(),
+          : _sale == null
+          ? const Center(
+              child: Text(
+                'Transaction not found.',
+                style: TextStyle(color: AppColors.muted),
+              ),
+            )
+          : _buildReceipt(),
     );
   }
 
@@ -382,39 +433,37 @@ class _TransactionDetailsScreenState
       child: Column(
         children: [
           Card(
-            color: Colors.white,
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(18),
               child: Column(
                 children: [
                   const CircleAvatar(
                     radius: 35,
-                    backgroundColor: Color(0xFFE1F2E9),
+                    backgroundColor: AppColors.sageLight,
                     child: Icon(
-                      Icons.check_circle,
+                      Icons.check_circle_rounded,
                       size: 42,
-                      color: primaryColor,
+                      color: AppColors.forest,
                     ),
                   ),
                   const SizedBox(height: 12),
                   const Text(
                     'TRANSACTION RECEIPT',
                     style: TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.bold,
+                      color: AppColors.forest,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
                     ),
                   ),
                   const SizedBox(height: 5),
                   Text(
                     'Sale ID: ${_sale!['sale_id']}',
-                    style: const TextStyle(color: Colors.grey),
+                    style: const TextStyle(color: AppColors.muted),
                   ),
                   const Divider(height: 30),
                   _receiptInfo('Cashier', _sale!['cashier']?.toString() ?? ''),
-                  _receiptInfo(
-                    'Date',
-                    _formatDate(_sale!['sale_date']),
-                  ),
+                  _receiptInfo('Date', _formatDate(_sale!['sale_date'])),
                   _receiptInfo(
                     'Payment Method',
                     (_sale!['payment_method'] ?? 'N/A')
@@ -427,8 +476,9 @@ class _TransactionDetailsScreenState
                     child: Text(
                       'Purchased Products',
                       style: TextStyle(
+                        color: AppColors.forest,
                         fontSize: 17,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
@@ -443,19 +493,20 @@ class _TransactionDetailsScreenState
                             item['product_name']?.toString() ??
                                 'Unknown Product',
                             style: const TextStyle(
-                              fontWeight: FontWeight.bold,
+                              color: AppColors.forest,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                           const SizedBox(height: 5),
                           Text(
                             '${item['quantity']} × ${_formatAmount(item['unit_price'])}',
-                            style: const TextStyle(color: Colors.grey),
+                            style: const TextStyle(color: AppColors.muted),
                           ),
                           if (item['batch_number'] != null)
                             Text(
                               'Batch: ${item['batch_number']}',
                               style: const TextStyle(
-                                color: Colors.grey,
+                                color: AppColors.muted,
                                 fontSize: 12,
                               ),
                             ),
@@ -465,6 +516,7 @@ class _TransactionDetailsScreenState
                             child: Text(
                               _formatAmount(item['subtotal']),
                               style: const TextStyle(
+                                color: AppColors.deepGreen,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -481,16 +533,17 @@ class _TransactionDetailsScreenState
                       const Text(
                         'TOTAL',
                         style: TextStyle(
+                          color: AppColors.forest,
                           fontSize: 19,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                       Text(
                         _formatAmount(_sale!['total_amount']),
                         style: const TextStyle(
-                          color: primaryColor,
+                          color: AppColors.forest,
                           fontSize: 21,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ],
@@ -499,7 +552,7 @@ class _TransactionDetailsScreenState
                   const Text(
                     'Thank you for your purchase!',
                     style: TextStyle(
-                      color: primaryColor,
+                      color: AppColors.deepGreen,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -513,11 +566,11 @@ class _TransactionDetailsScreenState
             height: 48,
             child: ElevatedButton.icon(
               onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Back to History'),
+              icon: const Icon(Icons.arrow_back_rounded),
+              label: const Text('Back to history'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: primaryColor,
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.forest,
+                foregroundColor: AppColors.canvas,
               ),
             ),
           ),
@@ -533,17 +586,17 @@ class _TransactionDetailsScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(color: Colors.grey),
-            ),
+            child: Text(label, style: const TextStyle(color: AppColors.muted)),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                color: AppColors.forest,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

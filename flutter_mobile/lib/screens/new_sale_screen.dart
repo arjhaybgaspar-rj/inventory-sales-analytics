@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import '../services/product_service.dart';
 
@@ -37,9 +36,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
     setState(() {
       if (result['success'] == true) {
-        products = List<Map<String, dynamic>>.from(
-          result['products'],
-        );
+        products = List<Map<String, dynamic>>.from(result['products']);
       } else {
         errorMessage = result['message'] ?? 'Unable to load products.';
       }
@@ -53,10 +50,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
   }
 
   double getProductPrice(Map<String, dynamic> product) {
-    return double.tryParse(
-          product['selling_price']?.toString() ?? '0',
-        ) ??
-        0;
+    return double.tryParse(product['selling_price']?.toString() ?? '0') ?? 0;
   }
 
   int getProductId(Map<String, dynamic> product) {
@@ -67,9 +61,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     final productId = getProductId(product);
 
     setState(() {
-      final index = cart.indexWhere(
-        (item) => item['product_id'] == productId,
-      );
+      final index = cart.indexWhere((item) => item['product_id'] == productId);
 
       if (index != -1) {
         cart[index]['quantity']++;
@@ -105,17 +97,15 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     return cart.fold(
       0.0,
       (total, item) =>
-          total +
-          (item['selling_price'] as double) *
-              (item['quantity'] as int),
+          total + (item['selling_price'] as double) * (item['quantity'] as int),
     );
   }
 
   List<Map<String, dynamic>> get filteredProducts {
     return products.where((product) {
-      return getProductName(product)
-          .toLowerCase()
-          .contains(searchQuery.toLowerCase());
+      return getProductName(
+        product,
+      ).toLowerCase().contains(searchQuery.toLowerCase());
     }).toList();
   }
 
@@ -131,10 +121,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       appBar: AppBar(
         title: const Text('New Sale'),
         actions: [
-          IconButton(
-            onPressed: loadProducts,
-            icon: const Icon(Icons.refresh),
-          ),
+          IconButton(onPressed: loadProducts, icon: const Icon(Icons.refresh)),
         ],
       ),
       body: Column(
@@ -159,54 +146,46 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
           Expanded(
             flex: 3,
             child: isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(),
-                  )
+                ? const Center(child: CircularProgressIndicator())
                 : errorMessage.isNotEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(errorMessage),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: loadProducts,
-                              child: const Text('Retry'),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(errorMessage),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: loadProducts,
+                          child: const Text('Retry'),
                         ),
-                      )
-                    : filteredProducts.isEmpty
-                        ? const Center(
-                            child: Text('No products found.'),
-                          )
-                        : ListView.builder(
-                            itemCount: filteredProducts.length,
-                            itemBuilder: (context, index) {
-                              final product = filteredProducts[index];
+                      ],
+                    ),
+                  )
+                : filteredProducts.isEmpty
+                ? const Center(child: Text('No products found.'))
+                : ListView.builder(
+                    itemCount: filteredProducts.length,
+                    itemBuilder: (context, index) {
+                      final product = filteredProducts[index];
 
-                              return Card(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 5,
-                                ),
-                                child: ListTile(
-                                  title: Text(
-                                    getProductName(product),
-                                  ),
-                                  subtitle: Text(
-                                    '₱${getProductPrice(product).toStringAsFixed(2)}',
-                                  ),
-                                  trailing: IconButton(
-                                    icon: const Icon(
-                                      Icons.add_shopping_cart,
-                                    ),
-                                    onPressed: () => addToCart(product),
-                                  ),
-                                ),
-                              );
-                            },
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
+                        ),
+                        child: ListTile(
+                          title: Text(getProductName(product)),
+                          subtitle: Text(
+                            '₱${getProductPrice(product).toStringAsFixed(2)}',
                           ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.add_shopping_cart),
+                            onPressed: () => addToCart(product),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
           const Divider(height: 1),
           Expanded(
@@ -217,17 +196,12 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                   padding: EdgeInsets.all(12),
                   child: Text(
                     'Shopping Cart',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
                 Expanded(
                   child: cart.isEmpty
-                      ? const Center(
-                          child: Text('Cart is empty.'),
-                        )
+                      ? const Center(child: Text('Cart is empty.'))
                       : ListView.builder(
                           itemCount: cart.length,
                           itemBuilder: (context, index) {
@@ -242,14 +216,14 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    onPressed: () =>
-                                        updateQuantity(index, -1),
-                                    icon: const Icon(Icons.remove_circle_outline),
+                                    onPressed: () => updateQuantity(index, -1),
+                                    icon: const Icon(
+                                      Icons.remove_circle_outline,
+                                    ),
                                   ),
                                   Text('${item['quantity']}'),
                                   IconButton(
-                                    onPressed: () =>
-                                        updateQuantity(index, 1),
+                                    onPressed: () => updateQuantity(index, 1),
                                     icon: const Icon(Icons.add_circle_outline),
                                   ),
                                 ],
