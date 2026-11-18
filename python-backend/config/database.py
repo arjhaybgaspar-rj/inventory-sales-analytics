@@ -10,7 +10,7 @@ def get_db_connection():
     if app_env == "production" and not db_password:
         raise RuntimeError("DB_PASSWORD must be set in production.")
 
-    return mysql.connector.connect(
+    connection = mysql.connector.connect(
         host=os.getenv("DB_HOST", "localhost"),
         port=int(os.getenv("DB_PORT", "3306")),
         user=os.getenv("DB_USER", "root"),
@@ -18,3 +18,16 @@ def get_db_connection():
         database=os.getenv("DB_NAME", "inventory_sale_analytics"),
         connection_timeout=10,
     )
+
+    cursor = None
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SET time_zone = '+08:00'")
+    except Exception:
+        connection.close()
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+
+    return connection

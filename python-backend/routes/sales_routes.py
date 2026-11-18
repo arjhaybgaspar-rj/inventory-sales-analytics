@@ -5,8 +5,217 @@ from utils.auth import login_required
 sales_bp = Blueprint("sales", __name__, url_prefix="/api/sales")
 
 
-@sales_bp.route("", methods=["GET"])
+def _ensure_shared_cart_table(cursor):
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS sales_cart_items (
+            user_id INT(11) NOT NULL,
+            product_id INT(11) NOT NULL,
+            quantity INT NOT NULL DEFAULT 1,
+            selected_batch_id INT(11) NULL,
+            batch_override_reason VARCHAR(255) NULL,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, product_id),
+            KEY idx_sales_cart_product (product_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
+
+
+@sales_bp.route("/cart", methods=["GET"])
 @login_required(["manager", "cashier"])
+def get_shared_cart():
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        _ensure_shared_cart_table(cursor)
+        cursor.execute("""
+            SELECT
+                ci.product_id,
+                p.product_name,
+                p.barcode,
+                p.brand,
+                p.unit,
+                p.selling_price,
+                p.image_url,
+                ci.quantity,
+                ci.selected_batch_id,
+                ci.batch_override_reason
+            FROM sales_cart_items ci
+            INNER JOIN products p ON p.product_id = ci.product_id
+            WHERE ci.user_id = %s AND p.status = 'active'
+            ORDER BY ci.updated_at, p.product_name
+        """, (session.get("user_id"),))
+        return jsonify({"success": True, "items": cursor.fetchall()}), 200
+    except Exception as e:
+        print("Get shared cart error:", repr(e))
+        return jsonify({
+            "success": False,
+            "message": "Unable to load the shared cart."
+        }), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+@sales_bp.route("/cart/items", methods=["POST"])
+@login_required(["manager", "cashier"])
+def add_shared_cart_item():
+    data = request.get_json() or {}
+    try:
+        product_id = int(data.get("product_id"))
+        quantity = int(data.get("quantity", 1))
+        if product_id <= 0 or quantity <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "A valid product and quantity are required."}), 400
+
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        _ensure_shared_cart_table(cursor)
+        connection.start_transaction()
+        cursor.execute("SELECT product_id FROM products WHERE product_id = %s AND status = 'active' LIMIT 1", (product_id,))
+        if not cursor.fetchone():
+            connection.rollback()
+            return jsonify({"success": False, "message": "Active product not found."}), 404
+        cursor.execute("""
+            INSERT INTO sales_cart_items (user_id, product_id, quantity)
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                quantity = quantity + VALUES(quantity),
+                updated_at = CURRENT_TIMESTAMP
+        """, (session.get("user_id"), product_id, quantity))
+        connection.commit()
+        return jsonify({"success": True, "message": "Product added to shared cart."}), 200
+    except Exception as e:
+        if connection:
+            connection.rollback()
+        print("Add shared cart item error:", repr(e))
+        return jsonify({"success": False, "message": "Unable to add the product to the shared cart."}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+@sales_bp.route("/cart/items/<int:product_id>", methods=["PUT"])
+@login_required(["manager", "cashier"])
+def update_shared_cart_item(product_id):
+    data = request.get_json() or {}
+    try:
+        quantity = int(data.get("quantity"))
+        if product_id <= 0 or quantity <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Quantity must be a positive whole number."}), 400
+
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        _ensure_shared_cart_table(cursor)
+        cursor.execute("SELECT product_id FROM products WHERE product_id = %s AND status = 'active' LIMIT 1", (product_id,))
+        if not cursor.fetchone():
+            return jsonify({"success": False, "message": "Active product not found."}), 404
+        cursor.execute("""
+            INSERT INTO sales_cart_items (user_id, product_id, quantity)
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                quantity = VALUES(quantity),
+                updated_at = CURRENT_TIMESTAMP
+        """, (session.get("user_id"), product_id, quantity))
+        if "selected_batch_id" in data or "batch_override_reason" in data:
+            cursor.execute("""
+                UPDATE sales_cart_items
+                SET selected_batch_id = %s,
+                    batch_override_reason = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = %s AND product_id = %s
+            """, (
+                data.get("selected_batch_id"),
+                str(data.get("batch_override_reason") or "")[:255],
+                session.get("user_id"),
+                product_id
+            ))
+        connection.commit()
+        return jsonify({"success": True, "message": "Shared cart updated."}), 200
+    except Exception as e:
+        if connection:
+            connection.rollback()
+        print("Update shared cart item error:", repr(e))
+        return jsonify({"success": False, "message": "Unable to update the shared cart."}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+@sales_bp.route("/cart/items/<int:product_id>", methods=["DELETE"])
+@login_required(["manager", "cashier"])
+def remove_shared_cart_item(product_id):
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        _ensure_shared_cart_table(cursor)
+        cursor.execute(
+            "DELETE FROM sales_cart_items WHERE user_id = %s AND product_id = %s",
+            (session.get("user_id"), product_id)
+        )
+        connection.commit()
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        if connection:
+            connection.rollback()
+        print("Remove shared cart item error:", repr(e))
+        return jsonify({"success": False, "message": "Unable to remove the cart item."}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+@sales_bp.route("/cart", methods=["DELETE"])
+@login_required(["manager", "cashier"])
+def clear_shared_cart():
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        _ensure_shared_cart_table(cursor)
+        cursor.execute(
+            "DELETE FROM sales_cart_items WHERE user_id = %s",
+            (session.get("user_id"),)
+        )
+        connection.commit()
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        if connection:
+            connection.rollback()
+        print("Clear shared cart error:", repr(e))
+        return jsonify({"success": False, "message": "Unable to clear the shared cart."}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+@sales_bp.route("", methods=["GET"])
+@login_required(["owner", "manager", "cashier"])
 def get_sales():
     connection = None
     cursor = None
@@ -26,10 +235,15 @@ def get_sales():
             FROM sales s
             INNER JOIN users u
                 ON s.user_id = u.user_id
-            ORDER BY s.sale_id DESC
         """
 
-        cursor.execute(query)
+        params = ()
+        if session.get("role") == "cashier":
+            query += " WHERE s.user_id = %s"
+            params = (session.get("user_id"),)
+
+        query += " ORDER BY s.sale_id DESC"
+        cursor.execute(query, params)
         sales = cursor.fetchall()
 
         return jsonify({
@@ -155,8 +369,8 @@ def get_eligible_batches(product_id):
             connection.close()
 
 
-@sales_bp.route("/<int:sale_id>", methods=["GET"])
-@login_required(["manager", "cashier"])
+@sales_bp.route("/receipt/<int:sale_id>", methods=["GET"])
+@login_required(["owner", "manager", "cashier"])
 def get_sale_receipt(sale_id):
     connection = None
     cursor = None
@@ -190,6 +404,15 @@ def get_sale_receipt(sale_id):
                 "success": False,
                 "message": "Sale not found."
             }), 404
+
+        if (
+            session.get("role") == "cashier"
+            and sale["user_id"] != session.get("user_id")
+        ):
+            return jsonify({
+                "success": False,
+                "message": "Access denied."
+            }), 403
 
         cursor.execute(
             """
@@ -282,6 +505,7 @@ def create_sale():
     try:
         connection = get_db_connection()
         cursor = connection.cursor(dictionary=True)
+        _ensure_shared_cart_table(cursor)
 
         connection.start_transaction()
 
@@ -718,6 +942,10 @@ def create_sale():
             )
         )
 
+        cursor.execute(
+            "DELETE FROM sales_cart_items WHERE user_id = %s",
+            (user_id,)
+        )
         connection.commit()
 
         return jsonify({
@@ -751,7 +979,7 @@ def create_sale():
 
 
 @sales_bp.route("/<int:sale_id>", methods=["GET"])
-@login_required(["manager", "cashier"])
+@login_required(["owner", "manager", "cashier"])
 def get_sale_details(sale_id):
     connection = None
     cursor = None

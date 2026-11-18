@@ -1,8 +1,11 @@
 
 import os
+import re
+from datetime import date, datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 from flask import Flask
+from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
 
 load_dotenv()
@@ -17,7 +20,27 @@ from routes.user_management_routes import user_management_bp
 from routes.audit_routes import audit_bp
 
 
+MANILA_TIMEZONE = timezone(timedelta(hours=8))
+
+
+class ManilaJSONProvider(DefaultJSONProvider):
+    @staticmethod
+    def default(value):
+        if isinstance(value, datetime):
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=MANILA_TIMEZONE)
+            else:
+                value = value.astimezone(MANILA_TIMEZONE)
+            return value.isoformat()
+
+        if isinstance(value, date):
+            return value.isoformat()
+
+        return DefaultJSONProvider.default(value)
+
+
 app = Flask(__name__)
+app.json = ManilaJSONProvider(app)
 
 APP_ENV = os.getenv("APP_ENV", "development").strip().lower()
 IS_PRODUCTION = APP_ENV == "production"
@@ -55,6 +78,9 @@ else:
         "http://localhost:64239",
     ]
 
+if not IS_PRODUCTION:
+    cors_origins.append(re.compile(r"^http://localhost:\d+$"))
+
 CORS(
     app,
     supports_credentials=True,
@@ -84,7 +110,7 @@ if __name__ == "__main__":
     ).lower() in {"1", "true", "yes"}
 
     app.run(
-        host=os.getenv("FLASK_HOST", "0.0.0.0"),
-        port=int(os.getenv("FLASK_PORT", "5000")),
-        debug=debug_enabled,
-    )
+    host="0.0.0.0",
+    port=int(os.getenv("FLASK_PORT", "5000")),
+    debug=debug_enabled,
+)
